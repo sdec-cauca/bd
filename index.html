@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Analítico Final</title>
+    <title>Dashboard Analítico con Resumen y Detalle</title>
     
     <!-- Dependencias (CDN) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -11,34 +11,20 @@
     <link href="https://cdn.datatables.net/2.0.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
-    <!-- Estilos CSS Personalizados: Layout Final y Diseño Glassmorphism -->
+    <!-- Estilos CSS Personalizados -->
     <style>
         :root {
-            --sidebar-width: 280px;
-            --navbar-height: 56px;
-            --transition-speed: 0.3s;
-            --border-radius: 1rem;
+            --sidebar-width: 280px; --navbar-height: 56px; --transition-speed: 0.3s; --border-radius: 1rem;
         }
-        
-        html, body {
-            overflow-x: hidden;
-        }
-
+        html, body { overflow-x: hidden; }
         body {
             padding-top: var(--navbar-height); 
             transition: padding-left var(--transition-speed) ease, background-color var(--transition-speed) ease;
         }
-
         @media (min-width: 768px) {
-            body {
-                padding-left: var(--sidebar-width);
-            }
-            body.sidebar-collapsed {
-                padding-left: 0;
-            }
+            body { padding-left: var(--sidebar-width); }
+            body.sidebar-collapsed { padding-left: 0; }
         }
-
-        /* Fondos y Estilo Glassmorphism */
         [data-bs-theme="light"] body { background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
         [data-bs-theme="dark"] body { background-image: linear-gradient(135deg, #16222A 0%, #3A6073 100%); }
         .glass-card {
@@ -50,21 +36,12 @@
         .glass-card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2); }
         [data-bs-theme="dark"] .glass-card { background: rgba(44, 48, 52, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2); }
         [data-bs-theme="dark"] .glass-card:hover { box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.3); }
-        
-        /* 💡 FIX: Asegura que la tarjeta de filtros y sus dropdowns estén por encima de las otras tarjetas */
-        .filter-card {
-            position: relative;
-            z-index: 20;
-        }
-
-        /* Navbar */
+        .filter-card { position: relative; z-index: 20; }
         .navbar {
             background: rgba(255, 255, 255, 0.3) !important; -webkit-backdrop-filter: blur(10px);
             backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0,0,0,0.05); z-index: 1030;
         }
         [data-bs-theme="dark"] .navbar { background: rgba(33, 37, 41, 0.5) !important; }
-
-        /* Sidebar Layout */
         #sidebar {
             width: var(--sidebar-width); height: 100vh; position: fixed; top: 0; left: 0;
             padding-top: var(--navbar-height); z-index: 1020;
@@ -74,16 +51,12 @@
         }
         [data-bs-theme="dark"] #sidebar { background: rgba(33, 37, 41, 0.7); border-right: 1px solid rgba(255, 255, 255, 0.1); }
         body.sidebar-collapsed #sidebar { transform: translateX(calc(-1 * var(--sidebar-width))); }
-        
-        /* Loader */
         #loader {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex;
             justify-content: center; align-items: center; z-index: 9999; flex-direction: column;
             background: rgba(255, 255, 255, 0.8); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
         }
         [data-bs-theme="dark"] #loader { background: rgba(0, 0, 0, 0.8); }
-
-        /* Estilos menores */
         main { min-width: 0; }
         .kpi-card-body { display: flex; align-items: center; justify-content: space-between; }
         .kpi-icon { font-size: 3rem; opacity: 0.3; }
@@ -106,19 +79,14 @@
             <a class="navbar-brand fw-bold ms-2" href="#"><i class="bi bi-bar-chart-line-fill me-2"></i>Dashboard Analítico</a>
             <div class="d-flex ms-auto align-items-center">
                 <button id="update-data-btn" class="btn btn-light me-3 shadow-sm"><i class="bi bi-arrow-clockwise me-1"></i> Actualizar</button>
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" id="theme-switch">
-                    <label class="form-check-label" for="theme-switch" id="theme-label"><i class="bi bi-moon-stars-fill"></i></label>
-                </div>
+                <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="theme-switch"><label class="form-check-label" for="theme-switch" id="theme-label"><i class="bi bi-moon-stars-fill"></i></label></div>
             </div>
         </div>
     </nav>
 
     <nav id="sidebar">
         <div class="position-sticky pt-3">
-            <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-2 text-muted text-uppercase">
-                <span>Componentes (Hojas)</span>
-            </h6>
+            <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-2 text-muted text-uppercase"><span>Vistas</span></h6>
             <ul id="sheet-tabs" class="nav flex-column nav-pills"></ul>
         </div>
     </nav>
@@ -127,7 +95,6 @@
         <div id="dashboard-content"></div>
     </main>
 
-    <!-- Scripts (CDN) -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -137,14 +104,12 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-
             const excelUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSbpZnX2M38lfkqzR2ki-0ihQHJCSKAMhkGuXKMXQkxX3ZDub7fPgaDZW4ebjCq2g/pub?output=xlsx';
             
-            // 💡 Se mueven las definiciones de columnas a un ámbito superior para ser reutilizadas
             const expectedHeaders = [ 'COMPONENTE', 'NOMBRE DEL PROYECTO', 'NOMBRE DE LA ACTIVIDAD', 'FECHA', 'MUNICIPIO', 'VEREDA', 'HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO', 'TOTAL ATENCION', 'LINK DE EVIDENCIA' ];
             const numericHeaders = [ 'HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'TOTAL ATENCION', 'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO' ];
 
-            const state = { workbook: null, activeSheet: null, data: {}, charts: {}, dataTable: null };
+            const state = { activeSheet: 'summary', allData: [], dataSheetNames: [], data: {}, charts: {}, dataTable: null };
             const loader = document.getElementById('loader');
             const sheetTabsContainer = document.getElementById('sheet-tabs');
             const dashboardContent = document.getElementById('dashboard-content');
@@ -159,15 +124,17 @@
 
             const processExcelData = (arrayBuffer) => {
                 const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
-                state.workbook = workbook;
-                state.data = {};
+                state.data = {}; state.allData = []; state.dataSheetNames = [];
                 
                 workbook.SheetNames.forEach(sheetName => {
+                    if (sheetName.toUpperCase().includes('TOTAL')) return;
+                    state.dataSheetNames.push(sheetName);
+                    
                     const ws = workbook.Sheets[sheetName];
                     const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
                     if (jsonData.length < 2) { state.data[sheetName] = []; return; }
                     
-                    state.data[sheetName] = jsonData.slice(1).map(row => {
+                    const sheetRows = jsonData.slice(1).map(row => {
                         const obj = {};
                         expectedHeaders.forEach((header, i) => {
                             let value = row[i];
@@ -177,6 +144,9 @@
                         });
                         return obj;
                     }).filter(row => row['COMPONENTE'] || row['NOMBRE DEL PROYECTO']);
+                    
+                    state.data[sheetName] = sheetRows;
+                    state.allData.push(...sheetRows);
                 });
                 initDashboard();
             };
@@ -189,7 +159,7 @@
                     processExcelData(await response.arrayBuffer());
                 } catch (error) {
                     console.error("Error al obtener datos:", error);
-                    dashboardContent.innerHTML = `<div class="alert alert-danger glass-card"><b>Error de Carga:</b> No se pudieron obtener los datos. Verifique la URL y la consola.</div>`;
+                    dashboardContent.innerHTML = `<div class="alert alert-danger glass-card"><b>Error:</b> No se pudieron obtener los datos.</div>`;
                 } finally {
                     toggleLoader(false);
                 }
@@ -197,22 +167,46 @@
             
             const initDashboard = () => {
                 sheetTabsContainer.innerHTML = '';
-                const sheetNames = state.workbook.SheetNames;
-                if (sheetNames.length === 0) return;
-                sheetNames.forEach((name, i) => {
-                    sheetTabsContainer.innerHTML += `<li class="nav-item"><a class="nav-link ${i === 0 ? 'active' : ''}" href="#" data-sheet="${name}">${name}</a></li>`;
+                sheetTabsContainer.innerHTML += `<li class="nav-item"><a class="nav-link active" href="#" data-sheet="summary"><i class="bi bi-pie-chart-fill me-2"></i>Resumen General</a></li>`;
+
+                state.dataSheetNames.forEach(name => {
+                    sheetTabsContainer.innerHTML += `<li class="nav-item"><a class="nav-link" href="#" data-sheet="${name}">${name}</a></li>`;
                 });
+
                 sheetTabsContainer.querySelectorAll('.nav-link').forEach(tab => {
                     tab.addEventListener('click', (e) => {
                         e.preventDefault();
                         sheetTabsContainer.querySelector('.nav-link.active').classList.remove('active');
-                        e.target.classList.add('active');
-                        state.activeSheet = e.target.getAttribute('data-sheet');
-                        renderSheetContent(state.activeSheet);
+                        const clickedTab = e.currentTarget;
+                        clickedTab.classList.add('active');
+                        state.activeSheet = clickedTab.dataset.sheet;
+                        
+                        if (state.activeSheet === 'summary') {
+                            renderSummaryDashboard(state.allData);
+                        } else {
+                            renderSheetContent(state.activeSheet);
+                        }
                     });
                 });
-                state.activeSheet = sheetNames[0];
-                renderSheetContent(state.activeSheet);
+                renderSummaryDashboard(state.allData);
+            };
+
+            const renderSummaryDashboard = (summaryData) => {
+                dashboardContent.innerHTML = `
+                    <div class="row g-4 mb-4 animate__animated animate__fadeIn">
+                        <div class="col-xl-4 col-md-6"><div id="kpi-total" class="card glass-card h-100"></div></div>
+                        <div class="col-xl-4 col-md-6"><div id="kpi-projects" class="card glass-card h-100"></div></div>
+                        <div class="col-xl-4 col-md-12"><div id="kpi-municipalities" class="card glass-card h-100"></div></div>
+                    </div>
+                    <h3 class="mb-4">Análisis Consolidado</h3>
+                    <div class="row g-4 mb-4">
+                        <div class="col-lg-6"><div class="card glass-card h-100"><div class="card-header bg-transparent fw-bold">Distribución por Género</div><div class="card-body d-flex justify-content-center align-items-center" style="min-height: 350px;"><canvas id="chart-summary-gender"></canvas></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100"><div class="card-header bg-transparent fw-bold">Distribución por Edad</div><div class="card-body d-flex justify-content-center align-items-center" style="min-height: 350px;"><canvas id="chart-summary-age"></canvas></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100"><div class="card-header bg-transparent fw-bold">Distribución por Grupo Poblacional</div><div class="card-body d-flex justify-content-center align-items-center" style="min-height: 350px;"><canvas id="chart-summary-population"></canvas></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100"><div class="card-header bg-transparent fw-bold">Distribución por Grupo Étnico</div><div class="card-body d-flex justify-content-center align-items-center" style="min-height: 350px;"><canvas id="chart-summary-ethnic"></canvas></div></div></div>
+                    </div>`;
+                updateKPIs(summaryData);
+                renderSummaryCharts(summaryData);
             };
 
             const renderSheetContent = (sheetName) => {
@@ -229,7 +223,7 @@
                         <div class="col-xl-4 col-md-12"><div id="kpi-municipalities" class="card glass-card h-100"></div></div>
                     </div>
                     <div class="card glass-card filter-card mb-4">
-                        <div class="card-header bg-transparent fw-bold"><i class="bi bi-funnel-fill me-2"></i>Filtros de Datos</div>
+                        <div class="card-header bg-transparent fw-bold"><i class="bi bi-funnel-fill me-2"></i>Filtros de Datos para: ${sheetName}</div>
                         <div class="card-body">
                             <div class="row g-3">
                                 <div class="col-lg-3 col-md-6 col-12"><label class="form-label fw-bold">Fecha Inicial</label><input type="date" id="filter-start-date" class="form-control filter-control"></div>
@@ -240,9 +234,9 @@
                         </div>
                     </div>
                     <div class="row g-4 mb-4">
-                        <div class="col-lg-6"><div class="card glass-card h-100"><div class="card-body d-flex justify-content-center align-items-center" style="min-height: 350px;"><canvas id="chart-gender"></canvas></div></div></div>
-                        <div class="col-lg-6"><div class="card glass-card h-100"><div class="card-body d-flex justify-content-center align-items-center" style="min-height: 350px;"><canvas id="chart-age"></canvas></div></div></div>
-                        <div class="col-12"><div class="card glass-card h-100"><div class="card-body" style="min-height: 350px;"><canvas id="chart-timeline"></canvas></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100"><div class="card-body d-flex justify-content-center align-items-center" style="min-height: 350px;"><canvas id="chart-detail-gender"></canvas></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100"><div class="card-body d-flex justify-content-center align-items-center" style="min-height: 350px;"><canvas id="chart-detail-age"></canvas></div></div></div>
+                        <div class="col-12"><div class="card glass-card h-100"><div class="card-body" style="min-height: 350px;"><canvas id="chart-detail-timeline"></canvas></div></div></div>
                     </div>
                     <div class="card glass-card">
                         <div class="card-header bg-transparent fw-bold"><i class="bi bi-table me-2"></i>Datos Completos</div>
@@ -266,6 +260,7 @@
             };
             
             const applyFilters = () => {
+                if (state.activeSheet === 'summary') return;
                 const filters = {};
                 document.querySelectorAll('.filter-control[type="checkbox"]:not(.population-filter):checked').forEach(el => {
                     const column = el.dataset.column; if (!filters[column]) filters[column] = []; filters[column].push(el.value);
@@ -285,10 +280,10 @@
 
             const updateDashboard = (data) => {
                 updateKPIs(data);
-                renderCharts(data);
+                renderDetailCharts(data);
                 renderDataTable(data);
             };
-
+            
             const updateKPIs = (data) => {
                 const total = data.reduce((s, r) => s + (r['TOTAL ATENCION'] || 0), 0);
                 const projects = new Set(data.map(r => r['NOMBRE DEL PROYECTO'])).size;
@@ -298,46 +293,62 @@
                 document.getElementById('kpi-municipalities').innerHTML = `<div class="card-body kpi-card-body"><div><h5>Municipios Atendidos</h5><h2 class="fw-bold text-info">${municipalities}</h2></div><i class="bi bi-geo-alt-fill kpi-icon"></i></div>`;
             };
 
-            const renderCharts = (data) => {
-                Object.values(state.charts).forEach(chart => chart && chart.destroy());
+            const getChartOptions = () => {
                 const isDark = htmlEl.dataset.bsTheme === 'dark';
                 const textColor = isDark ? '#fff' : '#495057';
+                return { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: textColor, font: { size: 14 } } } } };
+            };
+            
+            const renderSummaryCharts = (data) => {
+                Object.values(state.charts).forEach(chart => chart && chart.destroy());
+                const chartOptions = getChartOptions();
+                state.charts.summaryGender = new Chart(document.getElementById('chart-summary-gender'), { type: 'pie', data: { labels: ['Hombres', 'Mujeres'], datasets: [{ data: [data.reduce((s, r) => s + r['HOMBRE'], 0), data.reduce((s, r) => s + r['MUJER'], 0)], backgroundColor: ['#0d6efd', '#fd79a8'] }] }, options: chartOptions });
+                state.charts.summaryAge = new Chart(document.getElementById('chart-summary-age'), { type: 'pie', data: { labels: ['14–28 Años', '29–59 Años', 'Mayor a 60 Años'], datasets: [{ data: [data.reduce((s, r) => s + r['14 – 28 AÑOS'], 0), data.reduce((s, r) => s + r['29 – 59 AÑOS'], 0), data.reduce((s, r) => s + r['MÁYOR A 60 AÑOS'], 0)], backgroundColor: ['#ffc107', '#198754', '#6f42c1'] }] }, options: chartOptions });
+                const populationGroups = { 'VICTIMAS': 0, 'DISCAPACIDAD': 0, 'CAMPESINO': 0, 'LGBTI-OSIGD': 0 };
+                data.forEach(row => { for (const key in populationGroups) { populationGroups[key] += row[key] || 0; } });
+                state.charts.summaryPopulation = new Chart(document.getElementById('chart-summary-population'), { type: 'doughnut', data: { labels: Object.keys(populationGroups), datasets: [{ data: Object.values(populationGroups), backgroundColor: ['#0dcaf0', '#d63384', '#fd7e14', '#198754'] }] }, options: chartOptions });
+                const ethnicGroups = { 'AFROCOLOMBIANO': 0, 'INDIGENA': 0, 'ROOM': 0, 'MESTIZO': 0 };
+                data.forEach(row => { for (const key in ethnicGroups) { ethnicGroups[key] += row[key] || 0; } });
+                state.charts.summaryEthnic = new Chart(document.getElementById('chart-summary-ethnic'), { type: 'doughnut', data: { labels: Object.keys(ethnicGroups), datasets: [{ data: Object.values(ethnicGroups), backgroundColor: ['#6f42c1', '#dc3545', '#ffc107', '#20c997'] }] }, options: chartOptions });
+            };
+            
+            const renderDetailCharts = (data) => {
+                Object.values(state.charts).forEach(chart => chart && chart.destroy());
+                const chartOptions = getChartOptions();
+                const isDark = htmlEl.dataset.bsTheme === 'dark';
                 const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-                const chartOptions = (extra = {}) => ({ responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: textColor, font: { size: 14 } } } }, scales: { x: { ticks: { color: textColor }, grid: { color: gridColor } }, y: { ticks: { color: textColor }, grid: { color: gridColor } } }, ...extra });
-                state.charts.gender = new Chart(document.getElementById('chart-gender'), { type: 'doughnut', data: { labels: ['Hombres', 'Mujeres'], datasets: [{ data: [data.reduce((s, r) => s + r['HOMBRE'], 0), data.reduce((s, r) => s + r['MUJER'], 0)], backgroundColor: ['#0d6efd', '#fd79a8'] }] }, options: chartOptions({ scales: {} }) });
-                state.charts.age = new Chart(document.getElementById('chart-age'), { type: 'pie', data: { labels: ['14–28', '29–59', '>60'], datasets: [{ data: [data.reduce((s, r) => s + r['14 – 28 AÑOS'], 0), data.reduce((s, r) => s + r['29 – 59 AÑOS'], 0), data.reduce((s, r) => s + r['MÁYOR A 60 AÑOS'], 0)], backgroundColor: ['#ffc107', '#198754', '#6f42c1'] }] }, options: chartOptions({ scales: {} }) });
+                const textColor = isDark ? '#fff' : '#495057';
+                const lineChartOptions = { ...chartOptions, scales: { x: { ticks: { color: textColor }, grid: { color: gridColor } }, y: { ticks: { color: textColor }, grid: { color: gridColor } } } };
+
+                state.charts.detailGender = new Chart(document.getElementById('chart-detail-gender'), { type: 'doughnut', data: { labels: ['Hombres', 'Mujeres'], datasets: [{ data: [data.reduce((s, r) => s + r['HOMBRE'], 0), data.reduce((s, r) => s + r['MUJER'], 0)], backgroundColor: ['#0d6efd', '#fd79a8'] }] }, options: chartOptions });
+                state.charts.detailAge = new Chart(document.getElementById('chart-detail-age'), { type: 'pie', data: { labels: ['14–28', '29–59', '>60'], datasets: [{ data: [data.reduce((s, r) => s + r['14 – 28 AÑOS'], 0), data.reduce((s, r) => s + r['29 – 59 AÑOS'], 0), data.reduce((s, r) => s + r['MÁYOR A 60 AÑOS'], 0)], backgroundColor: ['#ffc107', '#198754', '#6f42c1'] }] }, options: chartOptions });
                 const timelineData = data.reduce((acc, r) => { if(r['FECHA']) acc[r['FECHA']] = (acc[r['FECHA']] || 0) + 1; return acc; }, {});
                 const sortedDates = Object.keys(timelineData).sort();
-                state.charts.timeline = new Chart(document.getElementById('chart-timeline'), { type: 'line', data: { labels: sortedDates, datasets: [{ label: 'Actividades por Fecha', data: sortedDates.map(d => timelineData[d]), borderColor: '#0dcaf0', tension: 0.2, fill: true, backgroundColor: 'rgba(13, 202, 240, 0.1)' }] }, options: chartOptions() });
+                state.charts.detailTimeline = new Chart(document.getElementById('chart-detail-timeline'), { type: 'line', data: { labels: sortedDates, datasets: [{ label: 'Actividades por Fecha', data: sortedDates.map(d => timelineData[d]), borderColor: '#0dcaf0', tension: 0.2, fill: true, backgroundColor: 'rgba(13, 202, 240, 0.1)' }] }, options: lineChartOptions });
             };
 
             const renderDataTable = (data) => {
                 if (state.dataTable) state.dataTable.destroy();
-                
-                // 💡 FIX: Usa la definición estática de columnas para evitar errores con datos filtrados
-                const columns = expectedHeaders.map(header => ({ 
-                    title: header, 
-                    data: header,
-                    defaultContent: "", // Muestra un string vacío si el dato es nulo
-                    render: (d) => (header === 'LINK DE EVIDENCIA' && d && d.startsWith('http')) ? `<a href="${d}" target="_blank" rel="noopener noreferrer">Ver</a>` : d
-                }));
-                
+                const columns = expectedHeaders.map(header => ({ title: header, data: header, defaultContent: "", render: (d) => (header === 'LINK DE EVIDENCIA' && d && d.startsWith('http')) ? `<a href="${d}" target="_blank" rel="noopener noreferrer">Ver</a>` : d }));
                 state.dataTable = new DataTable('#data-table', { data, columns, responsive: true, language: { url: '//cdn.datatables.net/plug-ins/2.0.8/i18n/es-ES.json' }, pageLength: 10, lengthMenu: [10, 25, 50], destroy: true });
             };
             
             const handleThemeSwitch = () => {
                 const isDark = themeSwitch.checked; htmlEl.dataset.bsTheme = isDark ? 'dark' : 'light';
                 themeLabel.innerHTML = isDark ? '<i class="bi bi-sun-fill"></i>' : '<i class="bi bi-moon-stars-fill"></i>';
-                if(state.activeSheet) applyFilters();
+                
+                // Vuelve a renderizar la vista activa para que los gráficos tomen los nuevos colores
+                if (state.activeSheet === 'summary') {
+                    renderSummaryCharts(state.allData);
+                } else {
+                    applyFilters();
+                }
             };
 
             updateDataBtn.addEventListener('click', fetchData);
             themeSwitch.addEventListener('change', handleThemeSwitch);
             sidebarToggleBtn.addEventListener('click', () => bodyEl.classList.toggle('sidebar-collapsed'));
-
-            if (window.innerWidth < 768) {
-                bodyEl.classList.add('sidebar-collapsed');
-            }
+            if (window.innerWidth < 768) bodyEl.classList.add('sidebar-collapsed');
             
             fetchData();
         });
