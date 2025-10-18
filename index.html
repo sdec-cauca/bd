@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Analítico con Resumen y Detalle</title>
+    <title>Dashboard Analítico Avanzado</title>
     
     <!-- Dependencias (CDN) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -64,6 +64,7 @@
         .dropdown-item-text { padding: 0.5rem 1rem; display: block; cursor: pointer; white-space: nowrap; }
         .dropdown-item-text:hover { background-color: rgba(0,0,0,0.1); }
         [data-bs-theme="dark"] .dropdown-item-text:hover { background-color: rgba(255,255,255,0.1); }
+        .table { --bs-table-bg: transparent; }
     </style>
 </head>
 <body>
@@ -204,15 +205,21 @@
                         <div class="col-lg-6"><div class="card glass-card h-100"><div class="card-header bg-transparent fw-bold">Distribución por Edad</div><div class="card-body d-flex justify-content-center align-items-center" style="min-height: 350px;"><canvas id="chart-summary-age"></canvas></div></div></div>
                         <div class="col-lg-6"><div class="card glass-card h-100"><div class="card-header bg-transparent fw-bold">Distribución por Grupo Poblacional</div><div class="card-body d-flex justify-content-center align-items-center" style="min-height: 350px;"><canvas id="chart-summary-population"></canvas></div></div></div>
                         <div class="col-lg-6"><div class="card glass-card h-100"><div class="card-header bg-transparent fw-bold">Distribución por Grupo Étnico</div><div class="card-body d-flex justify-content-center align-items-center" style="min-height: 350px;"><canvas id="chart-summary-ethnic"></canvas></div></div></div>
+                    </div>
+                    <h3 class="mb-4">Tablas de Totales</h3>
+                    <div class="row g-4">
+                        <div class="col-lg-6"><div class="card glass-card"><div class="card-header bg-transparent fw-bold">Totales por Género y Edad</div><div class="card-body"><table class="table table-hover"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="summary-table-gender-age"></tbody></table></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card"><div class="card-header bg-transparent fw-bold">Totales por Grupo Poblacional y Étnico</div><div class="card-body"><table class="table table-hover"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="summary-table-pop-ethnic"></tbody></table></div></div></div>
                     </div>`;
                 updateKPIs(summaryData);
                 renderSummaryCharts(summaryData);
+                renderSummaryTables(summaryData);
             };
 
             const renderSheetContent = (sheetName) => {
                 const sheetData = state.data[sheetName];
                 const filterableColumns = ['COMPONENTE', 'NOMBRE DEL PROYECTO', 'MUNICIPIO', 'VEREDA'];
-                const populationColumns = ['VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO'];
+                const populationColumns = [ 'HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO' ];
                 const filtersHtml = filterableColumns.map(col => createMultiSelectFilter(col, sheetData)).join('');
                 const populationFilterHtml = createConsolidatedPopulationFilter(populationColumns);
 
@@ -225,7 +232,7 @@
                     <div class="card glass-card filter-card mb-4">
                         <div class="card-header bg-transparent fw-bold"><i class="bi bi-funnel-fill me-2"></i>Filtros de Datos para: ${sheetName}</div>
                         <div class="card-body">
-                            <div class="row g-3">
+                            <div class="row g-3" id="filters-container">
                                 <div class="col-lg-3 col-md-6 col-12"><label class="form-label fw-bold">Fecha Inicial</label><input type="date" id="filter-start-date" class="form-control filter-control"></div>
                                 <div class="col-lg-3 col-md-6 col-12"><label class="form-label fw-bold">Fecha Final</label><input type="date" id="filter-end-date" class="form-control filter-control"></div>
                                 ${filtersHtml}
@@ -234,9 +241,11 @@
                         </div>
                     </div>
                     <div class="row g-4 mb-4">
-                        <div class="col-lg-6"><div class="card glass-card h-100"><div class="card-body d-flex justify-content-center align-items-center" style="min-height: 350px;"><canvas id="chart-detail-gender"></canvas></div></div></div>
-                        <div class="col-lg-6"><div class="card glass-card h-100"><div class="card-body d-flex justify-content-center align-items-center" style="min-height: 350px;"><canvas id="chart-detail-age"></canvas></div></div></div>
-                        <div class="col-12"><div class="card glass-card h-100"><div class="card-body" style="min-height: 350px;"><canvas id="chart-detail-timeline"></canvas></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100"><div class="card-header bg-transparent fw-bold">Género</div><div class="card-body d-flex justify-content-center align-items-center" style="min-height: 350px;"><canvas id="chart-detail-gender"></canvas></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100"><div class="card-header bg-transparent fw-bold">Edad</div><div class="card-body d-flex justify-content-center align-items-center" style="min-height: 350px;"><canvas id="chart-detail-age"></canvas></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100"><div class="card-header bg-transparent fw-bold">Grupo Poblacional</div><div class="card-body d-flex justify-content-center align-items-center" style="min-height: 350px;"><canvas id="chart-detail-population"></canvas></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100"><div class="card-header bg-transparent fw-bold">Grupo Étnico</div><div class="card-body d-flex justify-content-center align-items-center" style="min-height: 350px;"><canvas id="chart-detail-ethnic"></canvas></div></div></div>
+                        <div class="col-12"><div class="card glass-card h-100"><div class="card-header bg-transparent fw-bold">Línea de Tiempo de Actividades</div><div class="card-body" style="min-height: 350px;"><canvas id="chart-detail-timeline"></canvas></div></div></div>
                     </div>
                     <div class="card glass-card">
                         <div class="card-header bg-transparent fw-bold"><i class="bi bi-table me-2"></i>Datos Completos</div>
@@ -249,33 +258,65 @@
 
             const createMultiSelectFilter = (col, data) => {
                 const uniqueValues = [...new Set(data.map(item => item[col]).filter(Boolean))].sort();
-                if (uniqueValues.length === 0) return '';
+                if (uniqueValues.length === 0 && col !== 'VEREDA') return ''; // Vereda puede estar vacío inicialmente
                 const options = uniqueValues.map((val, i) => `<li><div class="dropdown-item-text"><input class="form-check-input me-2 filter-control" type="checkbox" value="${val}" id="check-${col.replace(/[^a-zA-Z0-9]/g, '-')}-${i}" data-column="${col}"><label class="form-check-label" for="check-${col.replace(/[^a-zA-Z0-9]/g, '-')}-${i}">${val}</label></div></li>`).join('');
-                return `<div class="col-lg-3 col-md-6 col-12"><label class="form-label fw-bold">${col}</label><div class="dropdown"><button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">Seleccionar...</button><ul class="dropdown-menu w-100">${options}</ul></div></div>`;
+                return `<div class="col-lg-3 col-md-6 col-12"><label class="form-label fw-bold">${col}</label><div class="dropdown"><button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">Seleccionar...</button><ul class="dropdown-menu w-100" data-filter-column="${col}">${options}</ul></div></div>`;
             };
 
             const createConsolidatedPopulationFilter = (populationColumns) => {
-                const options = populationColumns.map((col, i) => `<li><div class="dropdown-item-text"><input class="form-check-input me-2 filter-control population-filter" type="checkbox" value="${col}" id="check-pop-${i}" data-column="${col}"><label class="form-check-label" for="check-pop-${i}">${col}</label></div></li>`).join('');
-                return `<div class="col-lg-3 col-md-6 col-12"><label class="form-label fw-bold">Filtros de Población</label><div class="dropdown"><button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">Seleccionar...</button><ul class="dropdown-menu w-100">${options}</ul></div></div>`;
+                const options = populationColumns.map((col, i) => `<li><div class="dropdown-item-text"><input class="form-check-input me-2 filter-control population-filter" type="checkbox" value="${col}" id="check-pop-${i}" data-column="${col}"><label class="form-check-label" for="check-pop-${i}">${col.replace(/ AÑOS/g, 'a').replace(/MÁYOR A/g, '> ')}</label></div></li>`).join('');
+                return `<div class="col-lg-3 col-md-6 col-12"><label class="form-label fw-bold">Filtros Demográficos</label><div class="dropdown"><button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">Seleccionar...</button><ul class="dropdown-menu w-100">${options}</ul></div></div>`;
             };
             
             const applyFilters = () => {
                 if (state.activeSheet === 'summary') return;
-                const filters = {};
-                document.querySelectorAll('.filter-control[type="checkbox"]:not(.population-filter):checked').forEach(el => {
-                    const column = el.dataset.column; if (!filters[column]) filters[column] = []; filters[column].push(el.value);
-                });
-                const selectedPopulationFilters = Array.from(document.querySelectorAll('.population-filter:checked')).map(el => el.value);
-                const startDate = document.getElementById('filter-start-date').value;
-                const endDate = document.getElementById('filter-end-date').value;
-                const filteredData = state.data[state.activeSheet].filter(row => {
-                    if (startDate && row['FECHA'] < startDate) return false;
-                    if (endDate && row['FECHA'] > endDate) return false;
-                    for (const col in filters) { if (!filters[col].includes(row[col])) return false; }
-                    if (selectedPopulationFilters.length > 0 && !selectedPopulationFilters.some(popFilter => row[popFilter] > 0)) return false;
+                const baseData = state.data[state.activeSheet];
+                const selections = getSelections();
+                const filteredData = baseData.filter(row => {
+                    if (selections.startDate && row['FECHA'] < selections.startDate) return false;
+                    if (selections.endDate && row['FECHA'] > selections.endDate) return false;
+                    for (const col in selections.categorical) { if (!selections.categorical[col].includes(row[col])) return false; }
+                    if (selections.population.length > 0 && !selections.population.some(popFilter => row[popFilter] > 0)) return false;
                     return true;
                 });
                 updateDashboard(filteredData);
+                updateCascadingFilters(baseData, selections);
+            };
+
+            const getSelections = () => {
+                const selections = { categorical: {}, population: [] };
+                document.querySelectorAll('.filter-control[type="checkbox"]:not(.population-filter):checked').forEach(el => {
+                    const column = el.dataset.column; if (!selections.categorical[column]) selections.categorical[column] = []; selections.categorical[column].push(el.value);
+                });
+                selections.population = Array.from(document.querySelectorAll('.population-filter:checked')).map(el => el.value);
+                selections.startDate = document.getElementById('filter-start-date').value;
+                selections.endDate = document.getElementById('filter-end-date').value;
+                return selections;
+            };
+
+            const updateCascadingFilters = (baseData, selections) => {
+                let projectFilteredData = baseData;
+                if (selections.categorical['NOMBRE DEL PROYECTO']?.length > 0) {
+                    projectFilteredData = baseData.filter(row => selections.categorical['NOMBRE DEL PROYECTO'].includes(row['NOMBRE DEL PROYECTO']));
+                }
+                let municipalityFilteredData = projectFilteredData;
+                if (selections.categorical['MUNICIPIO']?.length > 0) {
+                    municipalityFilteredData = projectFilteredData.filter(row => selections.categorical['MUNICIPIO'].includes(row['MUNICIPIO']));
+                }
+                reRenderDropdown('MUNICIPIO', projectFilteredData, selections.categorical['MUNICIPIO'] || []);
+                reRenderDropdown('VEREDA', municipalityFilteredData, selections.categorical['VEREDA'] || []);
+            };
+
+            const reRenderDropdown = (column, data, selectedValues) => {
+                const uniqueValues = [...new Set(data.map(item => item[column]).filter(Boolean))].sort();
+                const dropdownMenu = document.querySelector(`[data-filter-column="${column}"]`);
+                if (!dropdownMenu) return;
+                const optionsHtml = uniqueValues.map((val, i) => {
+                    const isChecked = selectedValues.includes(val) ? 'checked' : '';
+                    return `<li><div class="dropdown-item-text"><input class="form-check-input me-2 filter-control" type="checkbox" ${isChecked} value="${val}" id="check-${column.replace(/[^a-zA-Z0-9]/g, '-')}-${i}" data-column="${column}"><label class="form-check-label" for="check-${column.replace(/[^a-zA-Z0-9]/g, '-')}-${i}">${val}</label></div></li>`;
+                }).join('');
+                dropdownMenu.innerHTML = optionsHtml;
+                dropdownMenu.querySelectorAll('.filter-control').forEach(el => el.addEventListener('change', applyFilters));
             };
 
             const updateDashboard = (data) => {
@@ -311,6 +352,19 @@
                 data.forEach(row => { for (const key in ethnicGroups) { ethnicGroups[key] += row[key] || 0; } });
                 state.charts.summaryEthnic = new Chart(document.getElementById('chart-summary-ethnic'), { type: 'doughnut', data: { labels: Object.keys(ethnicGroups), datasets: [{ data: Object.values(ethnicGroups), backgroundColor: ['#6f42c1', '#dc3545', '#ffc107', '#20c997'] }] }, options: chartOptions });
             };
+
+            const renderSummaryTables = (data) => {
+                const genderAgeBody = document.getElementById('summary-table-gender-age');
+                const popEthnicBody = document.getElementById('summary-table-pop-ethnic');
+                if (!genderAgeBody || !popEthnicBody) return;
+                const formatNumber = (num) => num.toLocaleString('es-CO');
+                const genderAgeTotals = { 'Hombres': data.reduce((s, r) => s + r['HOMBRE'], 0), 'Mujeres': data.reduce((s, r) => s + r['MUJER'], 0), '14–28 Años': data.reduce((s, r) => s + r['14 – 28 AÑOS'], 0), '29–59 Años': data.reduce((s, r) => s + r['29 – 59 AÑOS'], 0), 'Mayor a 60 Años': data.reduce((s, r) => s + r['MÁYOR A 60 AÑOS'], 0) };
+                let genderAgeHtml = ''; for (const key in genderAgeTotals) { genderAgeHtml += `<tr><td>${key}</td><td>${formatNumber(genderAgeTotals[key])}</td></tr>`; }
+                const popEthnicTotals = { 'Víctimas': data.reduce((s, r) => s + r['VICTIMAS'], 0), 'Discapacidad': data.reduce((s, r) => s + r['DISCAPACIDAD'], 0), 'Campesino': data.reduce((s, r) => s + r['CAMPESINO'], 0), 'LGBTI-OSIGD': data.reduce((s, r) => s + r['LGBTI-OSIGD'], 0), 'Afrocolombiano': data.reduce((s, r) => s + r['AFROCOLOMBIANO'], 0), 'Indígena': data.reduce((s, r) => s + r['INDIGENA'], 0), 'ROOM': data.reduce((s, r) => s + r['ROOM'], 0), 'Mestizo': data.reduce((s, r) => s + r['MESTIZO'], 0) };
+                let popEthnicHtml = ''; for (const key in popEthnicTotals) { popEthnicHtml += `<tr><td>${key}</td><td>${formatNumber(popEthnicTotals[key])}</td></tr>`; }
+                genderAgeBody.innerHTML = genderAgeHtml;
+                popEthnicBody.innerHTML = popEthnicHtml;
+            };
             
             const renderDetailCharts = (data) => {
                 Object.values(state.charts).forEach(chart => chart && chart.destroy());
@@ -319,9 +373,14 @@
                 const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
                 const textColor = isDark ? '#fff' : '#495057';
                 const lineChartOptions = { ...chartOptions, scales: { x: { ticks: { color: textColor }, grid: { color: gridColor } }, y: { ticks: { color: textColor }, grid: { color: gridColor } } } };
-
                 state.charts.detailGender = new Chart(document.getElementById('chart-detail-gender'), { type: 'doughnut', data: { labels: ['Hombres', 'Mujeres'], datasets: [{ data: [data.reduce((s, r) => s + r['HOMBRE'], 0), data.reduce((s, r) => s + r['MUJER'], 0)], backgroundColor: ['#0d6efd', '#fd79a8'] }] }, options: chartOptions });
                 state.charts.detailAge = new Chart(document.getElementById('chart-detail-age'), { type: 'pie', data: { labels: ['14–28', '29–59', '>60'], datasets: [{ data: [data.reduce((s, r) => s + r['14 – 28 AÑOS'], 0), data.reduce((s, r) => s + r['29 – 59 AÑOS'], 0), data.reduce((s, r) => s + r['MÁYOR A 60 AÑOS'], 0)], backgroundColor: ['#ffc107', '#198754', '#6f42c1'] }] }, options: chartOptions });
+                const populationGroups = { 'VICTIMAS': 0, 'DISCAPACIDAD': 0, 'CAMPESINO': 0, 'LGBTI-OSIGD': 0 };
+                data.forEach(row => { for (const key in populationGroups) { populationGroups[key] += row[key] || 0; } });
+                state.charts.detailPopulation = new Chart(document.getElementById('chart-detail-population'), { type: 'doughnut', data: { labels: Object.keys(populationGroups), datasets: [{ data: Object.values(populationGroups), backgroundColor: ['#0dcaf0', '#d63384', '#fd7e14', '#198754'] }] }, options: chartOptions });
+                const ethnicGroups = { 'AFROCOLOMBIANO': 0, 'INDIGENA': 0, 'ROOM': 0, 'MESTIZO': 0 };
+                data.forEach(row => { for (const key in ethnicGroups) { ethnicGroups[key] += row[key] || 0; } });
+                state.charts.detailEthnic = new Chart(document.getElementById('chart-detail-ethnic'), { type: 'doughnut', data: { labels: Object.keys(ethnicGroups), datasets: [{ data: Object.values(ethnicGroups), backgroundColor: ['#6f42c1', '#dc3545', '#ffc107', '#20c997'] }] }, options: chartOptions });
                 const timelineData = data.reduce((acc, r) => { if(r['FECHA']) acc[r['FECHA']] = (acc[r['FECHA']] || 0) + 1; return acc; }, {});
                 const sortedDates = Object.keys(timelineData).sort();
                 state.charts.detailTimeline = new Chart(document.getElementById('chart-detail-timeline'), { type: 'line', data: { labels: sortedDates, datasets: [{ label: 'Actividades por Fecha', data: sortedDates.map(d => timelineData[d]), borderColor: '#0dcaf0', tension: 0.2, fill: true, backgroundColor: 'rgba(13, 202, 240, 0.1)' }] }, options: lineChartOptions });
@@ -336,10 +395,8 @@
             const handleThemeSwitch = () => {
                 const isDark = themeSwitch.checked; htmlEl.dataset.bsTheme = isDark ? 'dark' : 'light';
                 themeLabel.innerHTML = isDark ? '<i class="bi bi-sun-fill"></i>' : '<i class="bi bi-moon-stars-fill"></i>';
-                
-                // Vuelve a renderizar la vista activa para que los gráficos tomen los nuevos colores
                 if (state.activeSheet === 'summary') {
-                    renderSummaryCharts(state.allData);
+                    renderSummaryDashboard(state.allData);
                 } else {
                     applyFilters();
                 }
@@ -348,7 +405,7 @@
             updateDataBtn.addEventListener('click', fetchData);
             themeSwitch.addEventListener('change', handleThemeSwitch);
             sidebarToggleBtn.addEventListener('click', () => bodyEl.classList.toggle('sidebar-collapsed'));
-            if (window.innerWidth < 768) bodyEl.classList.add('sidebar-collapsed');
+            if (window.innerWidth < 768) { bodyEl.classList.add('sidebar-collapsed'); }
             
             fetchData();
         });
