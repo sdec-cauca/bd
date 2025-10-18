@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Analítico Avanzado</title>
+    <title>Dashboard Analítico Elegante</title>
     
     <!-- Dependencias (CDN) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -11,110 +11,144 @@
     <link href="https://cdn.datatables.net/2.0.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
-    <!-- Estilos CSS personalizados en el propio HTML -->
+    <!-- Estilos CSS Personalizados para un Diseño Moderno -->
     <style>
         :root {
             --sidebar-width: 280px;
             --transition-speed: 0.3s;
+            --border-radius: 1rem; /* Bordes más redondeados */
         }
 
         body {
-            background-color: #f8f9fa;
-            color: #212529;
-            transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
+            transition: background-color var(--transition-speed) ease;
         }
 
-        /* Estilos para el modo oscuro */
-        [data-bs-theme="dark"] body { background-color: #212529; color: #f8f9fa; }
-        [data-bs-theme="dark"] .card, 
-        [data-bs-theme="dark"] #sidebar,
-        [data-bs-theme="dark"] .dropdown-menu {
-            background-color: #2b3035; border-color: #495057;
+        /* Fondos con gradiente para el efecto Glassmorphism */
+        [data-bs-theme="light"] body {
+            background-color: #f0f2f5;
+            background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         }
-        [data-bs-theme="dark"] .table { color: #f8f9fa; }
-        [data-bs-theme="dark"] .nav-link,
-        [data-bs-theme="dark"] .dropdown-item { color: #f8f9fa; }
-        [data-bs-theme="dark"] .nav-pills .nav-link.active { background-color: #0d6efd; }
-        [data-bs-theme="dark"] .form-select, [data-bs-theme="dark"] .form-control {
-            background-color: #343a40; color: #f8f9fa; border-color: #495057;
+        [data-bs-theme="dark"] body {
+            background-color: #1a1a2e;
+            background-image: linear-gradient(135deg, #16222A 0%, #3A6073 100%);
         }
-        [data-bs-theme="dark"] .modal-content { background-color: #2b3035; }
-        [data-bs-theme="dark"] .dropdown-item:hover { background-color: #3a4045; }
-        [data-bs-theme="dark"] #footer { background-color: #2b3035 !important; }
 
+        /* Estilo Glassmorphism para las tarjetas */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.5);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: var(--border-radius);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+            transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+        }
+        .glass-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+        }
 
-        /* Estilos del Dashboard y Sidebar Colapsable */
+        /* Adaptación del Glassmorphism para modo oscuro */
+        [data-bs-theme="dark"] .glass-card {
+            background: rgba(44, 48, 52, 0.5);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+        }
+        [data-bs-theme="dark"] .glass-card:hover {
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Estilos generales y del Sidebar */
         #sidebar {
             width: var(--sidebar-width);
             height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            background-color: #fff;
+            position: fixed; top: 0; left: 0;
             padding-top: 56px;
             transition: transform var(--transition-speed) ease;
             z-index: 1020;
+            background: rgba(255, 255, 255, 0.7);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
         }
-        #sidebar.collapsed {
-            transform: translateX(calc(-1 * var(--sidebar-width)));
+        [data-bs-theme="dark"] #sidebar {
+             background: rgba(33, 37, 41, 0.7);
+             border-right: 1px solid rgba(255, 255, 255, 0.1);
         }
+        #sidebar.collapsed { transform: translateX(calc(-1 * var(--sidebar-width))); }
+        
         main {
             padding-top: 70px;
             padding-left: var(--sidebar-width);
             transition: padding-left var(--transition-speed) ease;
         }
-        main.expanded {
-            padding-left: 0;
+        main.expanded { padding-left: 0; }
+        
+        /* Tarjetas KPI rediseñadas */
+        .kpi-card-body {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .kpi-icon {
+            font-size: 3rem;
+            opacity: 0.3;
         }
 
-        .kpi-card { border-left: 5px solid #0d6efd; }
-        .chart-container { height: 350px; }
-        
-        /* Loader de carga */
+        /* Loader */
         #loader {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(255, 255, 255, 0.8);
             display: flex; justify-content: center; align-items: center;
             z-index: 9999; flex-direction: column;
+            background: rgba(255, 255, 255, 0.8);
+            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px);
         }
-        [data-bs-theme="dark"] #loader { background-color: rgba(33, 37, 41, 0.8); }
+        [data-bs-theme="dark"] #loader { background: rgba(0, 0, 0, 0.8); }
 
-        /* Estilos para filtros multiselect */
-        .dropdown-menu {
-            max-height: 300px;
-            overflow-y: auto;
+        /* Ajustes menores de UI */
+        .navbar {
+            background: rgba(255, 255, 255, 0.3) !important;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
         }
-        .dropdown-item-text {
-            padding: 0.25rem 1rem;
-        }
+         [data-bs-theme="dark"] .navbar {
+             background: rgba(33, 37, 41, 0.5) !important;
+         }
+        .card-header { border-bottom: 1px solid rgba(0,0,0,0.08); }
+        [data-bs-theme="dark"] .card-header { border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .table { background-color: transparent; }
     </style>
 </head>
-<body>
+<body class="vh-100">
 
     <div id="loader">
         <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
-        <p class="mt-3 fs-5">Procesando datos, por favor espere...</p>
+        <p class="mt-3 fs-5">Procesando datos...</p>
     </div>
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top shadow-sm">
+    <nav class="navbar navbar-expand-lg fixed-top">
         <div class="container-fluid">
-            <button class="btn btn-primary" id="sidebar-toggle-btn"><i class="bi bi-list fs-4"></i></button>
+            <button class="btn btn-outline-secondary border-0" id="sidebar-toggle-btn"><i class="bi bi-list fs-4"></i></button>
             <a class="navbar-brand fw-bold ms-2" href="#"><i class="bi bi-bar-chart-line-fill me-2"></i>Dashboard Analítico</a>
             <div class="d-flex ms-auto align-items-center">
-                <button id="update-data-btn" class="btn btn-light me-3"><i class="bi bi-arrow-clockwise me-1"></i> Actualizar</button>
+                <button id="update-data-btn" class="btn btn-light me-3 shadow-sm"><i class="bi bi-arrow-clockwise me-1"></i> Actualizar</button>
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" role="switch" id="theme-switch">
-                    <label class="form-check-label text-white" for="theme-switch" id="theme-label"><i class="bi bi-moon-stars-fill"></i></label>
+                    <label class="form-check-label" for="theme-switch" id="theme-label"><i class="bi bi-moon-stars-fill"></i></label>
                 </div>
             </div>
         </div>
     </nav>
 
     <div class="d-flex">
-        <nav id="sidebar" class="shadow-sm">
+        <nav id="sidebar">
             <div class="position-sticky pt-3">
                 <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-2 text-muted text-uppercase">
-                    <span>Hojas de cálculo</span>
+                    <span>Componentes</span>
                 </h6>
                 <ul id="sheet-tabs" class="nav flex-column nav-pills"></ul>
             </div>
@@ -125,10 +159,6 @@
         </main>
     </div>
     
-    <footer class="bg-light text-center py-3" id="footer" style="position: relative; z-index: 1021;">
-        Dashboard v2.0 | Creado con HTML, CSS y JavaScript
-    </footer>
-
     <!-- Scripts (CDN) -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -143,10 +173,11 @@
             // ===================================================================================
             // CONFIGURACIÓN PRINCIPAL
             // -----------------------------------------------------------------------------------
-            // ✏️ Modifica esta URL para apuntar a tu archivo de Google Sheets.
+            // ✏️ URL del archivo Excel de Google Sheets.
             const excelUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSbpZnX2M38lfkqzR2ki-0ihQHJCSKAMhkGuXKMXQkxX3ZDub7fPgaDZW4ebjCq2g/pub?output=xlsx';
             // ===================================================================================
-
+            
+            // Declaraciones de estado y elementos del DOM
             const state = { workbook: null, activeSheet: null, data: {}, charts: {}, dataTable: null };
             const loader = document.getElementById('loader');
             const sheetTabsContainer = document.getElementById('sheet-tabs');
@@ -158,7 +189,7 @@
             const sidebar = document.getElementById('sidebar');
             const mainContent = document.querySelector('main');
             const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
-
+            
             const toggleLoader = (show) => loader.style.display = show ? 'flex' : 'none';
 
             const processExcelData = (arrayBuffer) => {
@@ -166,40 +197,28 @@
                 state.workbook = workbook;
                 state.data = {};
                 
-                // ⚙️ Columnas a interpretar (A hasta U). Modifica si es necesario.
                 const expectedHeaders = [
-                    'COMPONENTE', 'NOMBRE DEL PROYECTO', 'NOMBRE DE LA ACTIVIDAD', 'FECHA', 'MUNICIPIO',
-                    'VEREDA', 'HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS',
-                    'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO',
-                    'INDIGENA', 'ROOM', 'MESTIZO', 'TOTAL ATENCION', 'LINK DE EVIDENCIA'
+                    'COMPONENTE', 'NOMBRE DEL PROYECTO', 'NOMBRE DE LA ACTIVIDAD', 'FECHA', 'MUNICIPIO', 'VEREDA', 'HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO', 'TOTAL ATENCION', 'LINK DE EVIDENCIA'
                 ];
 
                 workbook.SheetNames.forEach(sheetName => {
                     const worksheet = workbook.Sheets[sheetName];
                     const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-
-                    if (jsonData.length < 2) {
-                        state.data[sheetName] = [];
-                        return;
-                    }
+                    if (jsonData.length < 2) { state.data[sheetName] = []; return; }
                     
-                    const dataRows = jsonData.slice(1);
-                    state.data[sheetName] = dataRows
-                        .map(row => {
-                            const obj = {};
-                            expectedHeaders.forEach((header, i) => {
-                                let value = row[i];
-                                const numericHeaders = ['HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'TOTAL ATENCION', 'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO'];
-                                if (numericHeaders.includes(header)) value = parseInt(value, 10) || 0;
-                                if (header === 'FECHA' && typeof value === 'number' && value > 1) {
-                                    value = new Date(Date.UTC(1900, 0, value - 1)).toISOString().split('T')[0];
-                                }
-                                obj[header] = value;
-                            });
-                            return obj;
-                        })
-                        // Filtramos filas que no tengan datos en las columnas clave para evitar filas vacías
-                        .filter(row => row['COMPONENTE'] || row['NOMBRE DEL PROYECTO']);
+                    state.data[sheetName] = jsonData.slice(1).map(row => {
+                        const obj = {};
+                        expectedHeaders.forEach((header, i) => {
+                            let value = row[i];
+                            const numericHeaders = ['HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'TOTAL ATENCION', 'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO'];
+                            if (numericHeaders.includes(header)) value = parseInt(value, 10) || 0;
+                            if (header === 'FECHA' && typeof value === 'number' && value > 1) {
+                                value = new Date(Date.UTC(1900, 0, value - 1)).toISOString().split('T')[0];
+                            }
+                            obj[header] = value;
+                        });
+                        return obj;
+                    }).filter(row => row['COMPONENTE'] || row['NOMBRE DEL PROYECTO']);
                 });
                 initDashboard();
             };
@@ -207,14 +226,13 @@
             const fetchData = async () => {
                 toggleLoader(true);
                 try {
-                    // ⚠️ NOTA: Si recibes un error de CORS, necesitas servir este archivo desde un servidor local (ej. con "Live Server" en VSCode)
-                    // o usar un proxy CORS anteponiendo 'https://cors-anywhere.herokuapp.com/' a la URL.
-                    const response = await fetch(excelUrl);
-                    if (!response.ok) throw new Error(`Error al descargar: ${response.statusText}`);
+                    // ⚠️ IMPORTANTE: Ejecutar desde un servidor local (Live Server) para evitar errores CORS.
+                    const response = await fetch(`https://cors-anywhere.herokuapp.com/${excelUrl}`);
+                    if (!response.ok) throw new Error(`Error de red: ${response.statusText}`);
                     processExcelData(await response.arrayBuffer());
                 } catch (error) {
                     console.error("Error al obtener los datos:", error);
-                    dashboardContent.innerHTML = `<div class="alert alert-danger"><b>Error de Carga:</b> No se pudieron obtener los datos. Verifica la URL y la consola para más detalles (posible problema de CORS).</div>`;
+                    dashboardContent.innerHTML = `<div class="alert alert-danger glass-card"><b>Error de Carga:</b> No se pudieron obtener los datos. Asegúrate de estar ejecutando esto desde un servidor web y que la URL del archivo sea correcta.</div>`;
                 } finally {
                     toggleLoader(false);
                 }
@@ -226,10 +244,7 @@
                 if (sheetNames.length === 0) return;
 
                 sheetNames.forEach((name, index) => {
-                    const li = document.createElement('li');
-                    li.className = 'nav-item';
-                    li.innerHTML = `<a class="nav-link ${index === 0 ? 'active' : ''}" href="#" data-sheet="${name}">${name}</a>`;
-                    sheetTabsContainer.appendChild(li);
+                    sheetTabsContainer.innerHTML += `<li class="nav-item"><a class="nav-link ${index === 0 ? 'active' : ''}" href="#" data-sheet="${name}">${name}</a></li>`;
                 });
 
                 sheetTabsContainer.querySelectorAll('.nav-link').forEach(tab => {
@@ -249,61 +264,39 @@
             const renderSheetContent = (sheetName) => {
                 const sheetData = state.data[sheetName];
                 
-                // ⚙️ COLUMNAS PARA FILTROS: Modifica este array para cambiar los filtros disponibles.
-                //    Se han agregado más columnas y se han excluido las que son puramente numéricas o de texto libre.
-                const filterableColumns = [
-                    'COMPONENTE', 'NOMBRE DEL PROYECTO', 'MUNICIPIO', 'VEREDA'
-                ];
-                // Columnas de población que serán tratadas como categorías filtrables
-                 const populationColumns = [
-                    'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 
-                    'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO'
-                ];
+                const filterableColumns = ['COMPONENTE', 'NOMBRE DEL PROYECTO', 'MUNICIPIO', 'VEREDA'];
+                const populationColumns = ['VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO'];
 
-                // Generar HTML para los filtros multiselect
                 const filtersHtml = filterableColumns.map(col => createMultiSelectFilter(col, sheetData)).join('');
                 const populationFiltersHtml = populationColumns.map(col => createMultiSelectFilter(col, sheetData, true)).join('');
 
                 dashboardContent.innerHTML = `
-                    <div class="row g-3 mb-4 animate__animated animate__fadeIn">
-                        <div class="col-md-4"><div id="kpi-total" class="card kpi-card shadow-sm h-100"></div></div>
-                        <div class="col-md-4"><div id="kpi-projects" class="card kpi-card shadow-sm h-100"></div></div>
-                        <div class="col-md-4"><div id="kpi-municipalities" class="card kpi-card shadow-sm h-100"></div></div>
+                    <div class="row g-4 mb-4 animate__animated animate__fadeIn">
+                        <div class="col-xl-4 col-md-6"><div id="kpi-total" class="card glass-card h-100"></div></div>
+                        <div class="col-xl-4 col-md-6"><div id="kpi-projects" class="card glass-card h-100"></div></div>
+                        <div class="col-xl-4 col-md-12"><div id="kpi-municipalities" class="card glass-card h-100"></div></div>
                     </div>
-                    <div class="card shadow-sm mb-4">
-                        <div class="card-header fw-bold"><i class="bi bi-funnel-fill me-2"></i>Filtros de Datos</div>
+                    <div class="card glass-card mb-4">
+                        <div class="card-header bg-transparent fw-bold"><i class="bi bi-funnel-fill me-2"></i>Filtros de Datos</div>
                         <div class="card-body">
                             <div class="row g-3">
-                                <!-- Filtro de Fechas -->
-                                <div class="col-md-3">
-                                    <label for="filter-start-date" class="form-label fw-bold">Fecha Inicial</label>
-                                    <input type="date" id="filter-start-date" class="form-control filter-control">
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="filter-end-date" class="form-label fw-bold">Fecha Final</label>
-                                    <input type="date" id="filter-end-date" class="form-control filter-control">
-                                </div>
+                                <div class="col-12 col-sm-6 col-lg-4 col-xl-3"><label for="filter-start-date" class="form-label fw-bold">Fecha Inicial</label><input type="date" id="filter-start-date" class="form-control filter-control"></div>
+                                <div class="col-12 col-sm-6 col-lg-4 col-xl-3"><label for="filter-end-date" class="form-label fw-bold">Fecha Final</label><input type="date" id="filter-end-date" class="form-control filter-control"></div>
                                 ${filtersHtml}
                             </div>
-                            <hr>
-                            <h6 class="text-muted">Filtros de Población (mostrar si tienen valor > 0)</h6>
-                             <div class="row g-3">
-                                ${populationFiltersHtml}
-                            </div>
+                            <hr class="my-4">
+                            <h6 class="text-muted">Filtros de Población (con valor > 0)</h6>
+                             <div class="row g-3">${populationFiltersHtml}</div>
                         </div>
                     </div>
                     <div class="row g-4 mb-4">
-                        <div class="col-lg-6"><div class="card shadow-sm h-100"><div class="card-body"><canvas id="chart-gender"></canvas></div></div></div>
-                        <div class="col-lg-6"><div class="card shadow-sm h-100"><div class="card-body"><canvas id="chart-age"></canvas></div></div></div>
-                        <div class="col-lg-12"><div class="card shadow-sm h-100"><div class="card-body"><canvas id="chart-timeline"></canvas></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100"><div class="card-body d-flex justify-content-center align-items-center" style="min-height: 350px;"><canvas id="chart-gender"></canvas></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100"><div class="card-body d-flex justify-content-center align-items-center" style="min-height: 350px;"><canvas id="chart-age"></canvas></div></div></div>
+                        <div class="col-12"><div class="card glass-card h-100"><div class="card-body" style="min-height: 350px;"><canvas id="chart-timeline"></canvas></div></div></div>
                     </div>
-                    <div class="card shadow-sm">
-                        <div class="card-header fw-bold"><i class="bi bi-table me-2"></i>Datos Completos</div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table id="data-table" class="table table-striped table-hover" style="width:100%"></table>
-                            </div>
-                        </div>
+                    <div class="card glass-card">
+                        <div class="card-header bg-transparent fw-bold"><i class="bi bi-table me-2"></i>Datos Completos</div>
+                        <div class="card-body"><div class="table-responsive"><table id="data-table" class="table table-hover" style="width:100%"></table></div></div>
                     </div>`;
 
                 document.querySelectorAll('.filter-control').forEach(el => el.addEventListener('change', applyFilters));
@@ -311,43 +304,22 @@
             };
 
             const createMultiSelectFilter = (col, data, isPopulation = false) => {
-                // Obtener valores únicos y limpiarlos (eliminar vacíos, nulos, etc.)
-                let uniqueValues;
-                if(isPopulation) {
-                    // Para población, las opciones son sí (1) o no (0), pero solo filtramos por sí.
-                    uniqueValues = ['Sí'];
-                } else {
-                    uniqueValues = [...new Set(data.map(item => item[col]).filter(Boolean))].sort();
-                }
-
+                let uniqueValues = isPopulation ? ['Sí'] : [...new Set(data.map(item => item[col]).filter(Boolean))].sort();
                 if (uniqueValues.length === 0) return '';
                 
-                const options = uniqueValues.map((val, i) => `
-                    <li>
-                        <div class="dropdown-item-text">
-                            <input class="form-check-input me-2 filter-control" type="checkbox" value="${val}" id="check-${col.replace(/\s+/g, '-')}-${i}" data-column="${col}">
-                            <label class="form-check-label" for="check-${col.replace(/\s+/g, '-')}-${i}">${val}</label>
-                        </div>
-                    </li>`).join('');
+                const options = uniqueValues.map((val, i) => `<li><div class="dropdown-item-text"><input class="form-check-input me-2 filter-control" type="checkbox" value="${val}" id="check-${col.replace(/[^a-zA-Z0-9]/g, '-')}-${i}" data-column="${col}"><label class="form-check-label" for="check-${col.replace(/[^a-zA-Z0-9]/g, '-')}-${i}">${val}</label></div></li>`).join('');
 
-                return `
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">${col}</label>
-                        <div class="dropdown">
-                            <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                Seleccionar...
-                            </button>
-                            <ul class="dropdown-menu w-100">
-                                ${options}
-                            </ul>
-                        </div>
-                    </div>`;
+                // SOLUCIÓN RESPONSIVE: Usar clases de grid para diferentes tamaños de pantalla
+                return `<div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                            <label class="form-label fw-bold">${col}</label>
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">Seleccionar...</button>
+                                <ul class="dropdown-menu dropdown-menu-dark w-100">${options}</ul>
+                            </div>
+                        </div>`;
             };
             
             const applyFilters = () => {
-                const originalData = state.data[state.activeSheet];
-                
-                // Recolectar todos los valores de los filtros
                 const filters = {};
                 document.querySelectorAll('.filter-control[type="checkbox"]:checked').forEach(el => {
                     const column = el.dataset.column;
@@ -358,21 +330,12 @@
                 const startDate = document.getElementById('filter-start-date').value;
                 const endDate = document.getElementById('filter-end-date').value;
 
-                const filteredData = originalData.filter(row => {
-                    // Filtro de fecha
+                const filteredData = state.data[state.activeSheet].filter(row => {
                     if (startDate && row['FECHA'] < startDate) return false;
                     if (endDate && row['FECHA'] > endDate) return false;
-                    
-                    // Filtros multiselect
                     for (const col in filters) {
-                        // Para filtros de población
-                        if (filters[col].includes('Sí')) {
-                             if (!row[col] || row[col] <= 0) return false;
-                        } 
-                        // Para filtros categóricos normales
-                        else {
-                            if (!filters[col].includes(row[col])) return false;
-                        }
+                        if (filters[col].includes('Sí')) { if (!row[col] || row[col] <= 0) return false; } 
+                        else { if (!filters[col].includes(row[col])) return false; }
                     }
                     return true;
                 });
@@ -387,75 +350,45 @@
             };
 
             const updateKPIs = (data) => {
-                const totalAttendance = data.reduce((sum, row) => sum + (row['TOTAL ATENCION'] || 0), 0);
-                const uniqueProjects = new Set(data.map(row => row['NOMBRE DEL PROYECTO'])).size;
-                const uniqueMunicipalities = new Set(data.map(row => row['MUNICIPIO'])).size;
+                const totalAttendance = data.reduce((sum, r) => sum + (r['TOTAL ATENCION'] || 0), 0);
+                const uniqueProjects = new Set(data.map(r => r['NOMBRE DEL PROYECTO'])).size;
+                const uniqueMunicipalities = new Set(data.map(r => r['MUNICIPIO'])).size;
 
-                document.getElementById('kpi-total').innerHTML = `<div class="card-body text-center"><h5 class="card-title">${totalAttendance.toLocaleString('es-CO')}</h5><p class="card-text text-muted">Total Atenciones</p></div>`;
-                document.getElementById('kpi-projects').innerHTML = `<div class="card-body text-center"><h5 class="card-title">${uniqueProjects}</h5><p class="card-text text-muted">Proyectos Únicos</p></div>`;
-                document.getElementById('kpi-municipalities').innerHTML = `<div class="card-body text-center"><h5 class="card-title">${uniqueMunicipalities}</h5><p class="card-text text-muted">Municipios Atendidos</p></div>`;
+                document.getElementById('kpi-total').innerHTML = `<div class="card-body kpi-card-body"><div class="text-content"><h5>Total Atenciones</h5><h2 class="fw-bold">${totalAttendance.toLocaleString('es-CO')}</h2></div><i class="bi bi-people-fill kpi-icon"></i></div>`;
+                document.getElementById('kpi-projects').innerHTML = `<div class="card-body kpi-card-body"><div class="text-content"><h5>Proyectos Únicos</h5><h2 class="fw-bold">${uniqueProjects}</h2></div><i class="bi bi-briefcase-fill kpi-icon"></i></div>`;
+                document.getElementById('kpi-municipalities').innerHTML = `<div class="card-body kpi-card-body"><div class="text-content"><h5>Municipios Atendidos</h5><h2 class="fw-bold">${uniqueMunicipalities}</h2></div><i class="bi bi-geo-alt-fill kpi-icon"></i></div>`;
             };
 
             const renderCharts = (data) => {
                 Object.values(state.charts).forEach(chart => chart && chart.destroy());
                 const isDark = htmlEl.dataset.bsTheme === 'dark';
-                const textColor = isDark ? '#fff' : '#333';
+                const textColor = isDark ? '#fff' : '#495057';
                 const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
 
-                const chartOptions = (extraOptions = {}) => ({
+                const chartOptions = (extra = {}) => ({
                     responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: textColor } } },
-                    scales: {
-                        x: { ticks: { color: textColor }, grid: { color: gridColor } },
-                        y: { ticks: { color: textColor }, grid: { color: gridColor } }
-                    },
-                    ...extraOptions
+                    plugins: { legend: { labels: { color: textColor, font: { size: 14 } } } },
+                    scales: { x: { ticks: { color: textColor }, grid: { color: gridColor } }, y: { ticks: { color: textColor }, grid: { color: gridColor } } }, ...extra
                 });
 
-                state.charts.gender = new Chart(document.getElementById('chart-gender'), { type: 'doughnut', data: {
-                    labels: ['Hombres', 'Mujeres'],
-                    datasets: [{ label: 'Género', data: [ data.reduce((s, r) => s + r['HOMBRE'], 0), data.reduce((s, r) => s + r['MUJER'], 0) ], backgroundColor: ['#36A2EB', '#FF6384'] }]
-                }, options: chartOptions({scales: {}}) });
-
-                state.charts.age = new Chart(document.getElementById('chart-age'), { type: 'pie', data: {
-                    labels: ['14–28 años', '29–59 años', 'Mayor a 60 años'],
-                    datasets: [{ label: 'Grupo Etario', data: [ data.reduce((s, r) => s + r['14 – 28 AÑOS'], 0), data.reduce((s, r) => s + r['29 – 59 AÑOS'], 0), data.reduce((s, r) => s + r['MÁYOR A 60 AÑOS'], 0)], backgroundColor: ['#FFCE56', '#4BC0C0', '#9966FF'] }]
-                }, options: chartOptions({scales: {}}) });
-
-                const timelineData = data.reduce((acc, row) => {
-                    const date = row['FECHA']; if (date) acc[date] = (acc[date] || 0) + 1; return acc;
-                }, {});
+                state.charts.gender = new Chart(document.getElementById('chart-gender'), { type: 'doughnut', data: { labels: ['Hombres', 'Mujeres'], datasets: [{ data: [data.reduce((s, r) => s + r['HOMBRE'], 0), data.reduce((s, r) => s + r['MUJER'], 0)], backgroundColor: ['#0d6efd', '#fd79a8'] }] }, options: chartOptions({ scales: {} }) });
+                state.charts.age = new Chart(document.getElementById('chart-age'), { type: 'pie', data: { labels: ['14–28', '29–59', '>60'], datasets: [{ data: [data.reduce((s, r) => s + r['14 – 28 AÑOS'], 0), data.reduce((s, r) => s + r['29 – 59 AÑOS'], 0), data.reduce((s, r) => s + r['MÁYOR A 60 AÑOS'], 0)], backgroundColor: ['#ffc107', '#198754', '#6f42c1'] }] }, options: chartOptions({ scales: {} }) });
+                
+                const timelineData = data.reduce((acc, r) => { if(r['FECHA']) acc[r['FECHA']] = (acc[r['FECHA']] || 0) + 1; return acc; }, {});
                 const sortedDates = Object.keys(timelineData).sort();
-                state.charts.timeline = new Chart(document.getElementById('chart-timeline'), { type: 'line', data: {
-                    labels: sortedDates, datasets: [{ label: 'Actividades por Fecha', data: sortedDates.map(d => timelineData[d]), borderColor: '#0d6efd', tension: 0.1 }]
-                }, options: chartOptions() });
+                state.charts.timeline = new Chart(document.getElementById('chart-timeline'), { type: 'line', data: { labels: sortedDates, datasets: [{ label: 'Actividades por Fecha', data: sortedDates.map(d => timelineData[d]), borderColor: '#0dcaf0', tension: 0.2, fill: true, backgroundColor: 'rgba(13, 202, 240, 0.1)' }] }, options: chartOptions() });
             };
 
             const renderDataTable = (data) => {
                 if (state.dataTable) state.dataTable.destroy();
-
-                // ⚙️ COLUMNAS VISIBLES: Se generan dinámicamente todas las columnas (A-U).
-                const allHeaders = Object.keys(data[0] || {});
-                const columns = allHeaders.map(header => ({
-                    title: header,
-                    data: header,
-                    // Render especial para la columna de evidencia para hacerla un link clickeable
-                    render: (d, type, row) => {
-                        if (header === 'LINK DE EVIDENCIA' && d && d.startsWith('http')) {
-                            return `<a href="${d}" target="_blank" rel="noopener noreferrer">Ver Evidencia</a>`;
-                        }
-                        return d;
-                    }
+                const columns = Object.keys(data[0] || {}).map(header => ({
+                    title: header, data: header,
+                    render: (d) => (header === 'LINK DE EVIDENCIA' && d && d.startsWith('http')) ? `<a href="${d}" target="_blank" rel="noopener noreferrer">Ver Evidencia</a>` : d
                 }));
-
                 state.dataTable = new DataTable('#data-table', {
-                    data: data,
-                    columns: columns,
-                    responsive: true,
+                    data, columns, responsive: true,
                     language: { url: '//cdn.datatables.net/plug-ins/2.0.8/i18n/es-ES.json' },
-                    pageLength: 10,
-                    lengthMenu: [10, 25, 50, 100],
-                    destroy: true
+                    pageLength: 10, lengthMenu: [10, 25, 50], destroy: true
                 });
             };
             
@@ -463,10 +396,9 @@
                 const isDark = themeSwitch.checked;
                 htmlEl.dataset.bsTheme = isDark ? 'dark' : 'light';
                 themeLabel.innerHTML = isDark ? '<i class="bi bi-sun-fill"></i>' : '<i class="bi bi-moon-stars-fill"></i>';
-                if(state.activeSheet) applyFilters(); // Re-renderizar todo para aplicar colores
+                if(state.activeSheet) applyFilters();
             };
 
-            // Event Listeners
             updateDataBtn.addEventListener('click', fetchData);
             themeSwitch.addEventListener('change', handleThemeSwitch);
             sidebarToggleBtn.addEventListener('click', () => {
