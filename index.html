@@ -140,6 +140,10 @@
 
             const excelUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSbpZnX2M38lfkqzR2ki-0ihQHJCSKAMhkGuXKMXQkxX3ZDub7fPgaDZW4ebjCq2g/pub?output=xlsx';
             
+            // 💡 Se mueven las definiciones de columnas a un ámbito superior para ser reutilizadas
+            const expectedHeaders = [ 'COMPONENTE', 'NOMBRE DEL PROYECTO', 'NOMBRE DE LA ACTIVIDAD', 'FECHA', 'MUNICIPIO', 'VEREDA', 'HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO', 'TOTAL ATENCION', 'LINK DE EVIDENCIA' ];
+            const numericHeaders = [ 'HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'TOTAL ATENCION', 'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO' ];
+
             const state = { workbook: null, activeSheet: null, data: {}, charts: {}, dataTable: null };
             const loader = document.getElementById('loader');
             const sheetTabsContainer = document.getElementById('sheet-tabs');
@@ -157,9 +161,7 @@
                 const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
                 state.workbook = workbook;
                 state.data = {};
-                const expectedHeaders = [ 'COMPONENTE', 'NOMBRE DEL PROYECTO', 'NOMBRE DE LA ACTIVIDAD', 'FECHA', 'MUNICIPIO', 'VEREDA', 'HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO', 'TOTAL ATENCION', 'LINK DE EVIDENCIA' ];
-                const numericHeaders = [ 'HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'TOTAL ATENCION', 'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO' ];
-
+                
                 workbook.SheetNames.forEach(sheetName => {
                     const ws = workbook.Sheets[sheetName];
                     const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
@@ -311,7 +313,15 @@
 
             const renderDataTable = (data) => {
                 if (state.dataTable) state.dataTable.destroy();
-                const columns = Object.keys(data[0] || {}).map(header => ({ title: header, data: header, render: (d,t,r) => (header === 'LINK DE EVIDENCIA' && d && d.startsWith('http')) ? `<a href="${d}" target="_blank" rel="noopener noreferrer">Ver</a>` : d }));
+                
+                // 💡 FIX: Usa la definición estática de columnas para evitar errores con datos filtrados
+                const columns = expectedHeaders.map(header => ({ 
+                    title: header, 
+                    data: header,
+                    defaultContent: "", // Muestra un string vacío si el dato es nulo
+                    render: (d) => (header === 'LINK DE EVIDENCIA' && d && d.startsWith('http')) ? `<a href="${d}" target="_blank" rel="noopener noreferrer">Ver</a>` : d
+                }));
+                
                 state.dataTable = new DataTable('#data-table', { data, columns, responsive: true, language: { url: '//cdn.datatables.net/plug-ins/2.0.8/i18n/es-ES.json' }, pageLength: 10, lengthMenu: [10, 25, 50], destroy: true });
             };
             
@@ -325,7 +335,6 @@
             themeSwitch.addEventListener('change', handleThemeSwitch);
             sidebarToggleBtn.addEventListener('click', () => bodyEl.classList.toggle('sidebar-collapsed'));
 
-            // Ocultar sidebar por defecto en pantallas pequeñas
             if (window.innerWidth < 768) {
                 bodyEl.classList.add('sidebar-collapsed');
             }
