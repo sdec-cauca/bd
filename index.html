@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Analítico Elegante y Responsivo</title>
+    <title>Dashboard Analítico Responsivo y Elegante</title>
     
     <!-- Dependencias (CDN) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -11,12 +11,24 @@
     <link href="https://cdn.datatables.net/2.0.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
-    <!-- Estilos CSS Personalizados: Responsividad y Elegancia (Glassmorphism) -->
+    <!-- Estilos CSS Personalizados: Solución de Layout y Diseño Glassmorphism -->
     <style>
         :root {
             --sidebar-width: 280px;
+            --navbar-height: 56px;
             --transition-speed: 0.3s;
             --border-radius: 1rem;
+        }
+        
+        /* 💡 FIX: Evita el desbordamiento horizontal en toda la página */
+        html, body {
+            overflow-x: hidden;
+        }
+
+        body {
+            /* 💡 FIX: Evita que el navbar solape el contenido principal */
+            padding-top: var(--navbar-height); 
+            transition: background-color var(--transition-speed) ease;
         }
 
         /* Fondos con gradiente para el efecto Glassmorphism */
@@ -29,7 +41,7 @@
             background-image: linear-gradient(135deg, #16222A 0%, #3A6073 100%);
         }
 
-        /* Estilo Glassmorphism para las tarjetas */
+        /* Estilo Glassmorphism para las tarjetas y componentes */
         .glass-card {
             background: rgba(255, 255, 255, 0.5);
             -webkit-backdrop-filter: blur(10px);
@@ -43,8 +55,6 @@
             transform: translateY(-5px);
             box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
         }
-
-        /* Adaptación del Glassmorphism para modo oscuro */
         [data-bs-theme="dark"] .glass-card {
             background: rgba(44, 48, 52, 0.5);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -54,14 +64,26 @@
             box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.3);
         }
         
-        /* Sidebar y Main Content */
+        /* Navbar con Glassmorphism */
+        .navbar {
+            background: rgba(255, 255, 255, 0.3) !important;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+         [data-bs-theme="dark"] .navbar {
+             background: rgba(33, 37, 41, 0.5) !important;
+         }
+
+        /* Sidebar y Main Content Layout */
+        #main-container {
+            display: flex;
+        }
+
         #sidebar {
             width: var(--sidebar-width);
-            height: 100vh;
-            position: fixed; top: 0; left: 0;
-            padding-top: 56px;
-            transition: transform var(--transition-speed) ease;
-            z-index: 1020;
+            min-height: calc(100vh - var(--navbar-height));
+            transition: margin-left var(--transition-speed) ease;
             background: rgba(255, 255, 255, 0.7);
             -webkit-backdrop-filter: blur(10px);
             backdrop-filter: blur(10px);
@@ -71,103 +93,65 @@
              background: rgba(33, 37, 41, 0.7);
              border-right: 1px solid rgba(255, 255, 255, 0.1);
         }
-        #sidebar.collapsed { transform: translateX(calc(-1 * var(--sidebar-width))); }
-        
-        main {
-            padding-top: 70px;
-            padding-left: var(--sidebar-width);
-            transition: padding-left var(--transition-speed) ease;
-            min-height: 100vh; /* Para que el fondo sea continuo */
-        }
-        main.expanded { padding-left: 0; }
-        
-        /* Ocultar barra lateral en móvil por defecto */
-        @media (max-width: 767.98px) {
-            #sidebar {
-                transform: translateX(calc(-1 * var(--sidebar-width)));
-                z-index: 1030; /* encima de todo */
-                box-shadow: 2px 0 10px rgba(0,0,0,0.2);
-            }
-            #sidebar.show {
-                transform: translateX(0);
-            }
-            main {
-                padding-left: 0;
-            }
-        }
-        
-        /* Navbar con Glassmorphism */
-        .navbar {
-            background: rgba(255, 255, 255, 0.3) !important;
-            -webkit-backdrop-filter: blur(10px);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            z-index: 1025;
-        }
-         [data-bs-theme="dark"] .navbar {
-             background: rgba(33, 37, 41, 0.5) !important;
-         }
-        
-        /* Tarjetas KPI */
-        .kpi-card-body {
-            display: flex; align-items: center; justify-content: space-between;
-        }
-        .kpi-icon {
-            font-size: 3rem; opacity: 0.3;
+        #sidebar.collapsed {
+            margin-left: calc(-1 * var(--sidebar-width));
         }
 
+        main {
+            flex-grow: 1;
+            /* 💡 FIX: Clave para que el contenido flexible no se desborde */
+            min-width: 0;
+        }
+
+        /* Responsive para móvil */
+        @media (max-width: 767.98px) {
+            #sidebar {
+                position: fixed;
+                top: var(--navbar-height);
+                left: 0;
+                z-index: 1030;
+                margin-left: calc(-1 * var(--sidebar-width)); /* Oculto por defecto */
+            }
+            #sidebar.show {
+                margin-left: 0; /* Visible cuando tiene la clase 'show' */
+            }
+            #sidebar.collapsed {
+                 margin-left: calc(-1 * var(--sidebar-width));
+            }
+        }
+        
         /* Loader */
         #loader {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; justify-content: center; align-items: center;
             z-index: 9999; flex-direction: column;
             background: rgba(255, 255, 255, 0.8);
-            -webkit-backdrop-filter: blur(5px);
-            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
         }
         [data-bs-theme="dark"] #loader { background: rgba(0, 0, 0, 0.8); }
 
-        /* Estilo del dropdown multi-select */
-        .dropdown-menu {
-             max-height: 300px;
-             overflow-y: auto;
-             padding: 0;
-        }
-        .dropdown-item-text {
-            padding: 0.5rem 1rem;
-            display: block;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-        .dropdown-item-text:hover {
-            background-color: rgba(0,0,0,0.1);
-        }
-         [data-bs-theme="dark"] .dropdown-item-text:hover {
-            background-color: rgba(255,255,255,0.1);
-        }
-        
+        /* Estilos menores */
+        .kpi-card-body { display: flex; align-items: center; justify-content: space-between; }
+        .kpi-icon { font-size: 3rem; opacity: 0.3; }
+        .dropdown-menu { max-height: 300px; overflow-y: auto; padding: 0; }
+        .dropdown-item-text { padding: 0.5rem 1rem; display: block; cursor: pointer; white-space: nowrap; }
+        .dropdown-item-text:hover { background-color: rgba(0,0,0,0.1); }
+        [data-bs-theme="dark"] .dropdown-item-text:hover { background-color: rgba(255,255,255,0.1); }
     </style>
 </head>
-<body class="vh-100">
+<body>
 
     <div id="loader">
         <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
         <p class="mt-3 fs-5">Procesando datos...</p>
     </div>
 
-    <!-- Navbar Superior -->
     <nav class="navbar navbar-expand-lg fixed-top">
         <div class="container-fluid">
-            <!-- Botón para Colapsar/Expandir Sidebar -->
-            <button class="btn btn-outline-secondary border-0" id="sidebar-toggle-btn" title="Colapsar menú"><i class="bi bi-list fs-4"></i></button>
-            
+            <button class="btn btn-outline-secondary border-0" id="sidebar-toggle-btn" title="Menú"><i class="bi bi-list fs-4"></i></button>
             <a class="navbar-brand fw-bold ms-2" href="#"><i class="bi bi-bar-chart-line-fill me-2"></i>Dashboard Analítico</a>
-            
             <div class="d-flex ms-auto align-items-center">
-                <!-- Botón de Actualizar -->
                 <button id="update-data-btn" class="btn btn-light me-3 shadow-sm"><i class="bi bi-arrow-clockwise me-1"></i> Actualizar</button>
-                
-                <!-- Interruptor Modo Oscuro/Claro -->
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" role="switch" id="theme-switch">
                     <label class="form-check-label" for="theme-switch" id="theme-label"><i class="bi bi-moon-stars-fill"></i></label>
@@ -176,32 +160,20 @@
         </div>
     </nav>
 
-    <!-- Contenido Principal y Sidebar -->
-    <div class="d-flex">
-        <!-- Menú Lateral (Sidebar) -->
+    <div id="main-container">
         <nav id="sidebar">
             <div class="position-sticky pt-3">
                 <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-2 text-muted text-uppercase">
                     <span>Componentes (Hojas)</span>
                 </h6>
-                <ul id="sheet-tabs" class="nav flex-column nav-pills">
-                    <!-- Pestañas generadas dinámicamente -->
-                </ul>
+                <ul id="sheet-tabs" class="nav flex-column nav-pills"></ul>
             </div>
         </nav>
 
-        <!-- Panel Principal (Main Content) -->
-        <main class="flex-grow-1 p-3 p-md-4">
-            <div id="dashboard-content">
-                <!-- Contenido de KPIs, Filtros, Gráficos y Tabla -->
-            </div>
+        <main class="p-3 p-md-4">
+            <div id="dashboard-content"></div>
         </main>
     </div>
-    
-    <!-- Pie de página -->
-    <footer class="bg-transparent text-center py-3" style="position: relative; z-index: 1021;">
-        Dashboard v3.0 | Elegante y Responsivo
-    </footer>
 
     <!-- Scripts (CDN) -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -217,11 +189,9 @@
             // ===================================================================================
             // CONFIGURACIÓN PRINCIPAL
             // -----------------------------------------------------------------------------------
-            // ✏️ Modifica esta URL para apuntar a tu archivo de Google Sheets (formato .xlsx)
             const excelUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSbpZnX2M38lfkqzR2ki-0ihQHJCSKAMhkGuXKMXQkxX3ZDub7fPgaDZW4ebjCq2g/pub?output=xlsx';
             // ===================================================================================
             
-            // Declaraciones de estado y elementos del DOM
             const state = { workbook: null, activeSheet: null, data: {}, charts: {}, dataTable: null };
             const loader = document.getElementById('loader');
             const sheetTabsContainer = document.getElementById('sheet-tabs');
@@ -231,62 +201,40 @@
             const themeLabel = document.getElementById('theme-label');
             const htmlEl = document.documentElement;
             const sidebar = document.getElementById('sidebar');
-            const mainContent = document.querySelector('main');
             const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
             
             const toggleLoader = (show) => loader.style.display = show ? 'flex' : 'none';
 
-            /**
-             * Parsea el ArrayBuffer del Excel a un objeto JSON.
-             * Aplica limpieza de datos, parseo de tipos y exclusión de columnas (solo hasta U).
-             */
             const processExcelData = (arrayBuffer) => {
                 const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
                 state.workbook = workbook;
                 state.data = {};
-                
-                // ⚙️ Encabezados de la A a la U.
                 const expectedHeaders = [
-                    'COMPONENTE', 'NOMBRE DEL PROYECTO', 'NOMBRE DE LA ACTIVIDAD', 'FECHA', 'MUNICIPIO', 'VEREDA', 
-                    'HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'VICTIMAS', 
-                    'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 
-                    'MESTIZO', 'TOTAL ATENCION', 'LINK DE EVIDENCIA'
+                    'COMPONENTE', 'NOMBRE DEL PROYECTO', 'NOMBRE DE LA ACTIVIDAD', 'FECHA', 'MUNICIPIO', 'VEREDA', 'HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO', 'TOTAL ATENCION', 'LINK DE EVIDENCIA'
                 ];
-                const numericHeaders = [
-                    'HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'TOTAL ATENCION', 
-                    'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO'
-                ];
+                const numericHeaders = [ 'HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'TOTAL ATENCION', 'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO' ];
 
                 workbook.SheetNames.forEach(sheetName => {
                     const worksheet = workbook.Sheets[sheetName];
                     const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-
                     if (jsonData.length < 2) { state.data[sheetName] = []; return; }
                     
-                    state.data[sheetName] = jsonData.slice(1) // Ignorar la primera fila (encabezado)
-                        .map(row => {
-                            const obj = {};
-                            expectedHeaders.forEach((header, i) => {
-                                let value = row[i];
-                                // Parseo de números
-                                if (numericHeaders.includes(header)) value = parseInt(value, 10) || 0;
-                                // Parseo de fechas (número de serie de Excel)
-                                if (header === 'FECHA' && typeof value === 'number' && value > 1) {
-                                    value = new Date(Date.UTC(1900, 0, value - 1)).toISOString().split('T')[0];
-                                }
-                                obj[header] = value;
-                            });
-                            return obj;
-                        })
-                        // ❌ Filtrar filas con datos vacíos en columnas clave (soluciona el valor vacío en los filtros)
-                        .filter(row => row['COMPONENTE'] || row['NOMBRE DEL PROYECTO']);
+                    state.data[sheetName] = jsonData.slice(1).map(row => {
+                        const obj = {};
+                        expectedHeaders.forEach((header, i) => {
+                            let value = row[i];
+                            if (numericHeaders.includes(header)) value = parseInt(value, 10) || 0;
+                            if (header === 'FECHA' && typeof value === 'number' && value > 1) {
+                                value = new Date(Date.UTC(1900, 0, value - 1)).toISOString().split('T')[0];
+                            }
+                            obj[header] = value;
+                        });
+                        return obj;
+                    }).filter(row => row['COMPONENTE'] || row['NOMBRE DEL PROYECTO']);
                 });
                 initDashboard();
             };
             
-            /**
-             * Descarga el archivo Excel.
-             */
             const fetchData = async () => {
                 toggleLoader(true);
                 try {
@@ -295,15 +243,12 @@
                     processExcelData(await response.arrayBuffer());
                 } catch (error) {
                     console.error("Error al obtener los datos:", error);
-                    dashboardContent.innerHTML = `<div class="alert alert-danger glass-card"><b>Error de Carga:</b> No se pudieron obtener los datos. Verifique la URL y los permisos (es probable que requiera un servidor local - Live Server).</div>`;
+                    dashboardContent.innerHTML = `<div class="alert alert-danger glass-card"><b>Error de Carga:</b> No se pudieron obtener los datos. Verifique la URL y la consola (es probable que necesite un servidor local como Live Server).</div>`;
                 } finally {
                     toggleLoader(false);
                 }
             };
             
-            /**
-             * Inicializa la navegación de pestañas y carga el contenido de la primera hoja.
-             */
             const initDashboard = () => {
                 sheetTabsContainer.innerHTML = '';
                 const sheetNames = state.workbook.SheetNames;
@@ -327,241 +272,121 @@
                 renderSheetContent(state.activeSheet);
             };
 
-            /**
-             * Genera el HTML principal para la hoja seleccionada (KPIs, Filtros, Gráficos, Tabla).
-             */
             const renderSheetContent = (sheetName) => {
                 const sheetData = state.data[sheetName];
-                
-                // ⚙️ Columnas categóricas para filtros multiselect
                 const filterableColumns = ['COMPONENTE', 'NOMBRE DEL PROYECTO', 'MUNICIPIO', 'VEREDA'];
-                // ⚙️ Columnas de población para filtros binarios (Sí/No)
                 const populationColumns = ['VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO'];
-
                 const filtersHtml = filterableColumns.map(col => createMultiSelectFilter(col, sheetData)).join('');
                 const populationFiltersHtml = populationColumns.map(col => createMultiSelectFilter(col, sheetData, true)).join('');
 
                 dashboardContent.innerHTML = `
-                    <!-- KPIs -->
                     <div class="row g-4 mb-4 animate__animated animate__fadeIn">
                         <div class="col-xl-4 col-md-6"><div id="kpi-total" class="card glass-card h-100"></div></div>
                         <div class="col-xl-4 col-md-6"><div id="kpi-projects" class="card glass-card h-100"></div></div>
                         <div class="col-xl-4 col-md-12"><div id="kpi-municipalities" class="card glass-card h-100"></div></div>
                     </div>
-                    
-                    <!-- Filtros -->
                     <div class="card glass-card mb-4">
                         <div class="card-header bg-transparent fw-bold"><i class="bi bi-funnel-fill me-2"></i>Filtros de Datos</div>
                         <div class="card-body">
-                            <!-- Filtro de Fechas -->
                             <div class="row g-3 mb-4">
-                                <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
-                                    <label for="filter-start-date" class="form-label fw-bold">Fecha Inicial</label>
-                                    <input type="date" id="filter-start-date" class="form-control filter-control">
-                                </div>
-                                <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
-                                    <label for="filter-end-date" class="form-label fw-bold">Fecha Final</label>
-                                    <input type="date" id="filter-end-date" class="form-control filter-control">
-                                </div>
+                                <div class="col-lg-3 col-md-6 col-12"><label for="filter-start-date" class="form-label fw-bold">Fecha Inicial</label><input type="date" id="filter-start-date" class="form-control filter-control"></div>
+                                <div class="col-lg-3 col-md-6 col-12"><label for="filter-end-date" class="form-label fw-bold">Fecha Final</label><input type="date" id="filter-end-date" class="form-control filter-control"></div>
                             </div>
-                            
-                            <!-- Filtros Categóricos (Select Multiples) -->
-                            <div class="row g-3">${filtersHtml}</div>
-                            
-                            <hr class="my-4">
-                            
-                            <!-- Filtros de Población (Checkbox Sí/No) -->
+                            <div class="row g-3">${filtersHtml}</div><hr class="my-4">
                             <h6 class="text-muted">Filtros de Población (con valor > 0)</h6>
-                             <div class="row g-3">${populationFiltersHtml}</div>
+                            <div class="row g-3">${populationFiltersHtml}</div>
                         </div>
                     </div>
-                    
-                    <!-- Gráficos -->
                     <div class="row g-4 mb-4">
                         <div class="col-lg-6"><div class="card glass-card h-100"><div class="card-body d-flex justify-content-center align-items-center" style="min-height: 350px;"><canvas id="chart-gender"></canvas></div></div></div>
                         <div class="col-lg-6"><div class="card glass-card h-100"><div class="card-body d-flex justify-content-center align-items-center" style="min-height: 350px;"><canvas id="chart-age"></canvas></div></div></div>
                         <div class="col-12"><div class="card glass-card h-100"><div class="card-body" style="min-height: 350px;"><canvas id="chart-timeline"></canvas></div></div></div>
                     </div>
-                    
-                    <!-- Tabla de Datos -->
                     <div class="card glass-card">
                         <div class="card-header bg-transparent fw-bold"><i class="bi bi-table me-2"></i>Datos Completos</div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table id="data-table" class="table table-hover" style="width:100%"></table>
-                            </div>
-                        </div>
+                        <div class="card-body"><div class="table-responsive"><table id="data-table" class="table table-hover" style="width:100%"></table></div></div>
                     </div>`;
 
                 document.querySelectorAll('.filter-control').forEach(el => el.addEventListener('change', applyFilters));
                 updateDashboard(sheetData);
             };
 
-            /**
-             * Genera el HTML para un filtro de selección múltiple (dropdown con checkboxes).
-             */
             const createMultiSelectFilter = (col, data, isPopulation = false) => {
-                let uniqueValues = isPopulation 
-                    ? ['Sí'] 
-                    : [...new Set(data.map(item => item[col]).filter(Boolean))].sort(); // Solo valores no vacíos
-                
+                let uniqueValues = isPopulation ? ['Sí'] : [...new Set(data.map(item => item[col]).filter(Boolean))].sort();
                 if (uniqueValues.length === 0 && !isPopulation) return '';
-                
-                const options = uniqueValues.map((val, i) => `
-                    <li>
-                        <div class="dropdown-item-text">
-                            <input class="form-check-input me-2 filter-control" type="checkbox" value="${val}" id="check-${col.replace(/[^a-zA-Z0-9]/g, '-')}-${i}" data-column="${col}">
-                            <label class="form-check-label" for="check-${col.replace(/[^a-zA-Z0-9]/g, '-')}-${i}">${val}</label>
-                        </div>
-                    </li>`).join('');
-
-                // 📐 Responsividad: Define el ancho del filtro en la parrilla (12 en móvil, 6 en tablet, 4 en LG, 3 en XL)
-                return `
-                    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
-                        <label class="form-label fw-bold">${col}</label>
-                        <div class="dropdown">
-                            <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">Seleccionar...</button>
-                            <ul class="dropdown-menu w-100">${options}</ul>
-                        </div>
-                    </div>`;
+                const options = uniqueValues.map((val, i) => `<li><div class="dropdown-item-text"><input class="form-check-input me-2 filter-control" type="checkbox" value="${val}" id="check-${col.replace(/[^a-zA-Z0-9]/g, '-')}-${i}" data-column="${col}"><label class="form-check-label" for="check-${col.replace(/[^a-zA-Z0-9]/g, '-')}-${i}">${val}</label></div></li>`).join('');
+                return `<div class="col-lg-3 col-md-6 col-12"><label class="form-label fw-bold">${col}</label><div class="dropdown"><button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">Seleccionar...</button><ul class="dropdown-menu w-100">${options}</ul></div></div>`;
             };
             
-            /**
-             * Aplica los filtros activos y re-renderiza el dashboard.
-             */
             const applyFilters = () => {
                 const filters = {};
-                // Recolectar filtros activos de checkboxes
                 document.querySelectorAll('.filter-control[type="checkbox"]:checked').forEach(el => {
-                    const column = el.dataset.column;
-                    if (!filters[column]) filters[column] = [];
-                    filters[column].push(el.value);
+                    const column = el.dataset.column; if (!filters[column]) filters[column] = []; filters[column].push(el.value);
                 });
-                
                 const startDate = document.getElementById('filter-start-date').value;
                 const endDate = document.getElementById('filter-end-date').value;
-
                 const filteredData = state.data[state.activeSheet].filter(row => {
-                    // 1. Filtro de fecha
                     if (startDate && row['FECHA'] < startDate) return false;
                     if (endDate && row['FECHA'] > endDate) return false;
-                    
-                    // 2. Filtros multiselect categóricos y de población
                     for (const col in filters) {
-                        // Filtro de población: debe tener un valor > 0 para ser "Sí"
-                        if (filters[col].includes('Sí')) { 
-                            if (!row[col] || row[col] <= 0) return false; 
-                        } 
-                        // Filtro categórico: debe coincidir con alguno de los valores seleccionados
-                        else { 
-                            if (!filters[col].includes(row[col])) return false; 
-                        }
+                        if (filters[col].includes('Sí')) { if (!row[col] || row[col] <= 0) return false; } 
+                        else { if (!filters[col].includes(row[col])) return false; }
                     }
                     return true;
                 });
-                
                 updateDashboard(filteredData);
             };
 
-            /**
-             * Coordina la actualización de todos los componentes.
-             */
             const updateDashboard = (data) => {
                 updateKPIs(data);
                 renderCharts(data);
                 renderDataTable(data);
             };
 
-            /**
-             * Actualiza las tarjetas KPI.
-             */
             const updateKPIs = (data) => {
                 const totalAttendance = data.reduce((sum, r) => sum + (r['TOTAL ATENCION'] || 0), 0);
                 const uniqueProjects = new Set(data.map(r => r['NOMBRE DEL PROYECTO'])).size;
                 const uniqueMunicipalities = new Set(data.map(r => r['MUNICIPIO'])).size;
-
                 document.getElementById('kpi-total').innerHTML = `<div class="card-body kpi-card-body"><div class="text-content"><h5>Total Atenciones</h5><h2 class="fw-bold text-primary">${totalAttendance.toLocaleString('es-CO')}</h2></div><i class="bi bi-people-fill kpi-icon"></i></div>`;
                 document.getElementById('kpi-projects').innerHTML = `<div class="card-body kpi-card-body"><div class="text-content"><h5>Proyectos Únicos</h5><h2 class="fw-bold text-success">${uniqueProjects}</h2></div><i class="bi bi-briefcase-fill kpi-icon"></i></div>`;
                 document.getElementById('kpi-municipalities').innerHTML = `<div class="card-body kpi-card-body"><div class="text-content"><h5>Municipios Atendidos</h5><h2 class="fw-bold text-info">${uniqueMunicipalities}</h2></div><i class="bi bi-geo-alt-fill kpi-icon"></i></div>`;
             };
 
-            /**
-             * Renderiza o actualiza los gráficos con Chart.js.
-             */
             const renderCharts = (data) => {
                 Object.values(state.charts).forEach(chart => chart && chart.destroy());
                 const isDark = htmlEl.dataset.bsTheme === 'dark';
                 const textColor = isDark ? '#fff' : '#495057';
                 const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-
-                const chartOptions = (extra = {}) => ({
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: textColor, font: { size: 14 } } } },
-                    scales: { x: { ticks: { color: textColor }, grid: { color: gridColor } }, y: { ticks: { color: textColor }, grid: { color: gridColor } } }, ...extra
-                });
-
-                // 1. Género (Doughnut)
+                const chartOptions = (extra = {}) => ({ responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: textColor, font: { size: 14 } } } }, scales: { x: { ticks: { color: textColor }, grid: { color: gridColor } }, y: { ticks: { color: textColor }, grid: { color: gridColor } } }, ...extra });
                 state.charts.gender = new Chart(document.getElementById('chart-gender'), { type: 'doughnut', data: { labels: ['Hombres', 'Mujeres'], datasets: [{ data: [data.reduce((s, r) => s + r['HOMBRE'], 0), data.reduce((s, r) => s + r['MUJER'], 0)], backgroundColor: ['#0d6efd', '#fd79a8'] }] }, options: chartOptions({ scales: {} }) });
-                
-                // 2. Grupos Etarios (Pie)
                 state.charts.age = new Chart(document.getElementById('chart-age'), { type: 'pie', data: { labels: ['14–28', '29–59', '>60'], datasets: [{ data: [data.reduce((s, r) => s + r['14 – 28 AÑOS'], 0), data.reduce((s, r) => s + r['29 – 59 AÑOS'], 0), data.reduce((s, r) => s + r['MÁYOR A 60 AÑOS'], 0)], backgroundColor: ['#ffc107', '#198754', '#6f42c1'] }] }, options: chartOptions({ scales: {} }) });
-                
-                // 3. Actividades por Fecha (Línea)
                 const timelineData = data.reduce((acc, r) => { if(r['FECHA']) acc[r['FECHA']] = (acc[r['FECHA']] || 0) + 1; return acc; }, {});
                 const sortedDates = Object.keys(timelineData).sort();
                 state.charts.timeline = new Chart(document.getElementById('chart-timeline'), { type: 'line', data: { labels: sortedDates, datasets: [{ label: 'Actividades por Fecha', data: sortedDates.map(d => timelineData[d]), borderColor: '#0dcaf0', tension: 0.2, fill: true, backgroundColor: 'rgba(13, 202, 240, 0.1)' }] }, options: chartOptions() });
             };
 
-            /**
-             * Renderiza la tabla de datos interactiva (DataTables).
-             */
             const renderDataTable = (data) => {
                 if (state.dataTable) state.dataTable.destroy();
-                
-                // Mapear todas las columnas del conjunto de datos
-                const columns = Object.keys(data[0] || {}).map(header => ({
-                    title: header, data: header,
-                    // Render especial para la URL de evidencia
-                    render: (d) => (header === 'LINK DE EVIDENCIA' && d && d.startsWith('http')) 
-                        ? `<a href="${d}" target="_blank" rel="noopener noreferrer">Ver Evidencia</a>` 
-                        : d
-                }));
-                
-                state.dataTable = new DataTable('#data-table', {
-                    data, columns, responsive: true,
-                    language: { url: '//cdn.datatables.net/plug-ins/2.0.8/i18n/es-ES.json' },
-                    pageLength: 10, lengthMenu: [10, 25, 50], destroy: true
-                });
+                const columns = Object.keys(data[0] || {}).map(header => ({ title: header, data: header, render: (d) => (header === 'LINK DE EVIDENCIA' && d && d.startsWith('http')) ? `<a href="${d}" target="_blank" rel="noopener noreferrer">Ver Evidencia</a>` : d }));
+                state.dataTable = new DataTable('#data-table', { data, columns, responsive: true, language: { url: '//cdn.datatables.net/plug-ins/2.0.8/i18n/es-ES.json' }, pageLength: 10, lengthMenu: [10, 25, 50], destroy: true });
             };
             
-            /**
-             * Manejador para el cambio de tema.
-             */
             const handleThemeSwitch = () => {
-                const isDark = themeSwitch.checked;
-                htmlEl.dataset.bsTheme = isDark ? 'dark' : 'light';
+                const isDark = themeSwitch.checked; htmlEl.dataset.bsTheme = isDark ? 'dark' : 'light';
                 themeLabel.innerHTML = isDark ? '<i class="bi bi-sun-fill"></i>' : '<i class="bi bi-moon-stars-fill"></i>';
-                if(state.activeSheet) applyFilters(); // Forzar re-renderizado de gráficos con nuevos colores
+                if(state.activeSheet) applyFilters();
             };
 
-            // Event Listeners
             updateDataBtn.addEventListener('click', fetchData);
             themeSwitch.addEventListener('change', handleThemeSwitch);
-            
-            // Lógica para colapsar/expandir el sidebar
             sidebarToggleBtn.addEventListener('click', () => {
-                // Alternar la clase en el sidebar
-                sidebar.classList.toggle('collapsed');
-                // Alternar la clase en el main para ajustar el padding
-                mainContent.classList.toggle('expanded');
-                
-                // En móvil, la clase 'collapsed' se usa para ocultar, y 'show' para mostrar
                 if (window.innerWidth <= 767.98) {
                     sidebar.classList.toggle('show');
+                } else {
+                    sidebar.classList.toggle('collapsed');
                 }
             });
 
-            // Carga inicial de datos
             fetchData();
         });
     </script>
