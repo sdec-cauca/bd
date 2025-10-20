@@ -401,7 +401,7 @@
                 try {
                     const { jsPDF } = window.jspdf;
                     const autoTable = window.jspdf.autoTable;
-                    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+                    const doc = new window.jspdf.jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
 
                     const title = state.activeSheet === 'summary' ? 'Resumen General' : `Componente: ${state.activeSheet}`;
                     const filename = `Informe_${title.replace(/ /g, '_')}_${new Date().toLocaleDateString('es-CO')}.pdf`;
@@ -442,22 +442,14 @@
                     const chartCards = Array.from(document.querySelectorAll('#charts-container .chart-card'));
                     for (let i = 0; i < chartCards.length; i++) {
                         const card = chartCards[i];
-                        const canvas = await html2canvas(card, { scale: 2, backgroundColor: null });
-                        const imgWidth = (doc.internal.pageSize.width / 2) - margin;
-                        const imgHeight = canvas.height * (imgWidth / canvas.width);
-
-                        if (yPosition + imgHeight > pageHeight - margin) {
+                        if (yPosition > pageHeight - 80) {
                             doc.addPage();
                             addHeader(doc);
                             yPosition = 35;
                         }
-
-                        const xPosition = (i % 2 === 0) ? margin : (doc.internal.pageSize.width / 2) + 5;
-                        doc.addImage(canvas.toDataURL('image/png'), 'PNG', xPosition, yPosition, imgWidth, 0);
-
-                        if (i % 2 !== 0 || i === chartCards.length - 1) {
-                            yPosition += imgHeight + 10;
-                        }
+                        const canvas = await html2canvas(card, { scale: 2, backgroundColor: null });
+                        doc.addImage(canvas.toDataURL('image/png'), 'PNG', margin, yPosition, doc.internal.pageSize.width - margin * 2, 0);
+                        yPosition += canvas.height * ( (doc.internal.pageSize.width - margin * 2) / canvas.width ) + 10;
                     }
 
                     if (state.activeSheet !== 'summary' && state.currentViewData.length > 0) {
