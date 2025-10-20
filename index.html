@@ -399,8 +399,7 @@
             const generatePDF = async () => {
                 toggleLoader(true, 'Generando informe PDF...');
                 try {
-                    const { jsPDF } = window.jspdf;
-                    const autoTable = window.jspdf.autoTable;
+                    // 💡 FIX: Usar el constructor global que ha sido extendido por el plugin
                     const doc = new window.jspdf.jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
 
                     const title = state.activeSheet === 'summary' ? 'Resumen General' : `Componente: ${state.activeSheet}`;
@@ -418,6 +417,13 @@
                         docInstance.text(`Vista: ${title}`, margin, 21);
                     };
 
+                    const addFooter = (docInstance, pageNum, totalPages) => {
+                        docInstance.setFontSize(8).setTextColor('#888888');
+                        const dateText = `Generado el: ${new Date().toLocaleString('es-CO')}`;
+                        docInstance.text(dateText, margin, pageHeight - 10);
+                        docInstance.text(`Página ${pageNum} de ${totalPages}`, docInstance.internal.pageSize.width - 35, pageHeight - 10);
+                    };
+                    
                     addHeader(doc);
 
                     doc.setFontSize(12).setFont(undefined, 'bold').setTextColor('#000000');
@@ -442,21 +448,34 @@
                     const chartCards = Array.from(document.querySelectorAll('#charts-container .chart-card'));
                     for (let i = 0; i < chartCards.length; i++) {
                         const card = chartCards[i];
-                        if (yPosition > pageHeight - 80) {
+                        const canvas = await html2canvas(card, { scale: 2, backgroundColor: null });
+                        const imgWidth = (doc.internal.pageSize.width / 2) - margin;
+                        const imgHeight = canvas.height * (imgWidth / canvas.width);
+
+                        if (yPosition + imgHeight > pageHeight - margin) {
                             doc.addPage();
                             addHeader(doc);
                             yPosition = 35;
                         }
-                        const canvas = await html2canvas(card, { scale: 2, backgroundColor: null });
-                        doc.addImage(canvas.toDataURL('image/png'), 'PNG', margin, yPosition, doc.internal.pageSize.width - margin * 2, 0);
-                        yPosition += canvas.height * ( (doc.internal.pageSize.width - margin * 2) / canvas.width ) + 10;
+                        const xPosition = (i % 2 === 0) ? margin : (doc.internal.pageSize.width / 2) + 5;
+                        doc.addImage(canvas.toDataURL('image/png'), 'PNG', xPosition, yPosition, imgWidth, 0);
+
+                        if (i % 2 !== 0 || i === chartCards.length - 1) {
+                            yPosition += imgHeight + 10;
+                        }
                     }
 
                     if (state.activeSheet !== 'summary' && state.currentViewData.length > 0) {
+                        if (yPosition > pageHeight - 40) {
+                             doc.addPage();
+                             addHeader(doc);
+                             yPosition = 35;
+                        }
                         const tableHead = [['Actividad', 'Fecha', 'Municipio', 'Total', 'URL Evidencia']];
                         const tableBody = state.currentViewData.map(row => [ row['NOMBRE DE LA ACTIVIDAD'], row['FECHA'], row['MUNICIPIO'], row['TOTAL ATENCION'], row['LINK DE EVIDENCIA'] ]);
                         
-                        autoTable(doc, {
+                        // 💡 FIX: Usar la llamada correcta al plugin
+                        doc.autoTable({
                             head: tableHead,
                             body: tableBody,
                             startY: yPosition,
@@ -469,10 +488,7 @@
                     const pageCount = doc.internal.getNumberOfPages();
                     for(let i = 1; i <= pageCount; i++) {
                         doc.setPage(i);
-                        doc.setFontSize(8).setTextColor('#888888');
-                        const dateText = `Generado el: ${new Date().toLocaleString('es-CO')}`;
-                        doc.text(dateText, margin, pageHeight - 10);
-                        doc.text(`Página ${i} de ${pageCount}`, doc.internal.pageSize.width - 35, pageHeight - 10);
+                        addFooter(doc, i, pageCount);
                     }
 
                     doc.save(filename);
@@ -480,6 +496,7 @@
                     console.error("Error al generar el PDF:", err);
                     alert("Ocurrió un error al generar el PDF. Revise la consola para más detalles.");
                 } finally {
+                    // 💡 FIX: Asegurar que el loader siempre se oculte
                     toggleLoader(false);
                 }
             };
