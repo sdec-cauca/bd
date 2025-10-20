@@ -33,6 +33,7 @@
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
             transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
         }
+        .glass-card:hover { transform: translateY(-5px); }
         [data-bs-theme="dark"] .glass-card { background: rgba(44, 48, 52, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2); }
         .filter-card { position: relative; z-index: 20; }
         .navbar {
@@ -64,7 +65,6 @@
         [data-bs-theme="dark"] .dropdown-item-text:hover { background-color: rgba(255,255,255,0.1); }
         .table { --bs-table-bg: transparent; }
         .chart-container { position: relative; flex-grow: 1; min-height: 200px; }
-        /* 💡 FIX: Eliminar el scroll de las tablas de gráficos */
         .table-container { flex-shrink: 0; }
     </style>
 </head>
@@ -106,7 +106,6 @@
     <script src="https://cdn.datatables.net/2.0.8/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- Librería para tablas en PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf-autotable.umd.min.js"></script>
 
     <script>
@@ -306,7 +305,7 @@
             };
 
             const updateUI = (data) => {
-                state.currentViewData = data; // Guardar datos actuales para el PDF
+                state.currentViewData = data;
                 updateKPIs(data);
                 renderCharts(data);
                 renderChartTables(data);
@@ -327,7 +326,7 @@
             const getChartOptions = () => {
                 const isDark = htmlEl.dataset.bsTheme === 'dark';
                 const textColor = isDark ? '#fff' : '#495057';
-                return { responsive: true, maintainAspectRatio: false, animation: { duration: 500 }, plugins: { legend: { labels: { color: textColor, font: { size: 14 } } } } };
+                return { responsive: true, maintainAspectRatio: false, animation: { duration: 500 }, plugins: { legend: { labels: { color: textColor, font: { size: 14 } } } }, advanced: { willReadFrequently: true } };
             };
             
             const renderCharts = (data) => {
@@ -400,7 +399,6 @@
                 toggleLoader(true, 'Generando informe PDF...');
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-                const autoTable = window.jspdf.autoTable; // Acceder a la función autoTable
 
                 const title = state.activeSheet === 'summary' ? 'Resumen General' : `Componente: ${state.activeSheet}`;
                 const filename = `Informe_${title.replace(/ /g, '_')}_${new Date().toLocaleDateString('es-CO')}.pdf`;
@@ -408,27 +406,28 @@
                 const pageHeight = doc.internal.pageSize.height;
                 const margin = 15;
 
-                const addHeaderAndFooter = () => {
-                    const totalPages = doc.internal.getNumberOfPages();
-                    for (let i = 1; i <= totalPages; i++) {
-                        doc.setPage(i);
-                        // Encabezado
-                        doc.setFillColor('#212529'); // Color oscuro
-                        doc.rect(0, 0, doc.internal.pageSize.width, 25, 'F');
-                        doc.setFontSize(20).setFont(undefined, 'bold').setTextColor('#FFFFFF');
-                        doc.text('Informe de Analítica', margin, 15);
-                        doc.setFontSize(12).setFont(undefined, 'normal');
-                        doc.text(`Vista: ${title}`, margin, 21);
-                        
-                        // Pie de página
-                        doc.setFontSize(8).setTextColor('#888888');
+                const addHeader = (docInstance) => {
+                    docInstance.setFillColor('#212529');
+                    docInstance.rect(0, 0, docInstance.internal.pageSize.width, 25, 'F');
+                    docInstance.setFontSize(20).setFont(undefined, 'bold').setTextColor('#FFFFFF');
+                    docInstance.text('Informe de Analítica', margin, 15);
+                    docInstance.setFontSize(12).setFont(undefined, 'normal');
+                    docInstance.text(`Vista: ${title}`, margin, 21);
+                };
+
+                const addFooter = (docInstance) => {
+                    const pageCount = docInstance.internal.getNumberOfPages();
+                    for (let i = 1; i <= pageCount; i++) {
+                        docInstance.setPage(i);
+                        docInstance.setFontSize(8).setTextColor('#888888');
                         const dateText = `Generado el: ${new Date().toLocaleString('es-CO')}`;
-                        doc.text(dateText, margin, pageHeight - 10);
-                        doc.text(`Página ${i} de ${totalPages}`, doc.internal.pageSize.width - 35, pageHeight - 10);
+                        docInstance.text(dateText, margin, pageHeight - 10);
+                        docInstance.text(`Página ${i} de ${pageCount}`, docInstance.internal.pageSize.width - 35, pageHeight - 10);
                     }
                 };
 
-                // Sección de Filtros Aplicados
+                addHeader(doc);
+
                 doc.setFontSize(12).setFont(undefined, 'bold').setTextColor('#000000');
                 doc.text('Filtros Aplicados', margin, yPosition);
                 yPosition += 7;
@@ -441,58 +440,55 @@
                 if (selections.population.length > 0) { filterTexts.push(`Demografía: ${selections.population.join(', ')}`); }
                 const filterLines = doc.splitTextToSize(filterTexts.length > 0 ? filterTexts.join(' | ') : 'Ninguno', doc.internal.pageSize.width - margin * 2);
                 doc.text(filterLines, margin, yPosition);
-                yPosition += filterLines.length * 5 + 10;
+                yPosition += filterLines.length * 4 + 10;
                 
-                // KPIs
                 const kpiContainer = document.getElementById('kpi-cards-container');
                 const kpiCanvas = await html2canvas(kpiContainer, { scale: 2, backgroundColor: null });
-                const kpiImgData = kpiCanvas.toDataURL('image/png');
-                doc.addImage(kpiImgData, 'PNG', margin, yPosition, doc.internal.pageSize.width - margin * 2, 0);
-                yPosition = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : yPosition + 40;
-
-                // Gráficos y Tablas
+                doc.addImage(kpiCanvas.toDataURL('image/png'), 'PNG', margin, yPosition, doc.internal.pageSize.width - margin * 2, 0);
+                yPosition += kpiCanvas.height * ( (doc.internal.pageSize.width - margin * 2) / kpiCanvas.width ) + 10;
+                
                 const chartCards = document.querySelectorAll('#charts-container .chart-card');
+                let rowMaxHeight = 0;
                 for (let i = 0; i < chartCards.length; i++) {
                     const card = chartCards[i];
-                    if (yPosition > pageHeight - 80) { // Margen para el gráfico
+                    const xPosition = (i % 2 === 0) ? margin : (doc.internal.pageSize.width / 2) + 5;
+                    const imgWidth = (doc.internal.pageSize.width / 2) - margin - 5;
+                    
+                    const canvas = await html2canvas(card, { scale: 2, backgroundColor: null });
+                    const imgHeight = canvas.height * (imgWidth / canvas.width);
+
+                    if (yPosition + imgHeight > pageHeight - margin) {
                         doc.addPage();
+                        addHeader(doc);
                         yPosition = 35;
                     }
-                    const canvas = await html2canvas(card, { scale: 2, backgroundColor: null });
-                    const imgData = canvas.toDataURL('image/png');
-                    doc.addImage(imgData, 'PNG', margin, yPosition, doc.internal.pageSize.width - margin * 2, 0);
-                    yPosition = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : yPosition + 90;
+
+                    doc.addImage(canvas.toDataURL('image/png'), 'PNG', xPosition, yPosition, imgWidth, 0);
+                    rowMaxHeight = Math.max(rowMaxHeight, imgHeight);
+
+                    if (i % 2 !== 0 || i === chartCards.length - 1) {
+                        yPosition += rowMaxHeight + 10;
+                        rowMaxHeight = 0;
+                    }
                 }
 
-                // Tabla de Datos Detallada (si aplica)
                 if (state.activeSheet !== 'summary' && state.currentViewData.length > 0) {
-                    doc.addPage();
-                    yPosition = 35;
-                    doc.setFontSize(12).setFont(undefined, 'bold').setTextColor('#000000');
-                    doc.text('Datos Detallados', margin, yPosition);
-                    
                     const tableHead = [['Actividad', 'Fecha', 'Municipio', 'Total', 'URL Evidencia']];
-                    const tableBody = state.currentViewData.map(row => [
-                        row['NOMBRE DE LA ACTIVIDAD'],
-                        row['FECHA'],
-                        row['MUNICIPIO'],
-                        row['TOTAL ATENCION'],
-                        row['LINK DE EVIDENCIA']
-                    ]);
-
-                    autoTable(doc, {
+                    const tableBody = state.currentViewData.map(row => [ row['NOMBRE DE LA ACTIVIDAD'], row['FECHA'], row['MUNICIPIO'], row['TOTAL ATENCION'], row['LINK DE EVIDENCIA'] ]);
+                    
+                    doc.autoTable({
                         head: tableHead,
                         body: tableBody,
-                        startY: yPosition + 5,
+                        startY: yPosition,
                         theme: 'grid',
                         headStyles: { fillColor: '#212529' },
                         didDrawPage: (data) => {
-                           // Se podría añadir encabezado y pie de página aquí también si la tabla se pagina
+                            addHeader(doc);
                         }
                     });
                 }
                 
-                addHeaderAndFooter();
+                addFooter(doc);
                 doc.save(filename);
                 toggleLoader(false);
             };
