@@ -33,9 +33,7 @@
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
             transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
         }
-        .glass-card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2); }
         [data-bs-theme="dark"] .glass-card { background: rgba(44, 48, 52, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2); }
-        [data-bs-theme="dark"] .glass-card:hover { box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.3); }
         .filter-card { position: relative; z-index: 20; }
         .navbar {
             background: rgba(255, 255, 255, 0.3) !important; -webkit-backdrop-filter: blur(10px);
@@ -66,7 +64,8 @@
         [data-bs-theme="dark"] .dropdown-item-text:hover { background-color: rgba(255,255,255,0.1); }
         .table { --bs-table-bg: transparent; }
         .chart-container { position: relative; flex-grow: 1; min-height: 200px; }
-        .table-container { flex-shrink: 0; max-height: 120px; overflow-y: auto; }
+        /* 💡 FIX: Eliminar el scroll de las tablas de gráficos */
+        .table-container { flex-shrink: 0; }
     </style>
 </head>
 <body>
@@ -107,6 +106,8 @@
     <script src="https://cdn.datatables.net/2.0.8/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Librería para tablas en PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf-autotable.umd.min.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -115,7 +116,7 @@
             const expectedHeaders = [ 'COMPONENTE', 'NOMBRE DEL PROYECTO', 'NOMBRE DE LA ACTIVIDAD', 'FECHA', 'MUNICIPIO', 'VEREDA', 'HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO', 'TOTAL ATENCION', 'LINK DE EVIDENCIA' ];
             const numericHeaders = [ 'HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'TOTAL ATENCION', 'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO' ];
 
-            const state = { activeSheet: 'summary', allData: [], dataSheetNames: [], data: {}, charts: {}, dataTable: null };
+            const state = { activeSheet: 'summary', allData: [], dataSheetNames: [], data: {}, charts: {}, dataTable: null, currentViewData: [] };
             const loader = document.getElementById('loader');
             const sheetTabsContainer = document.getElementById('sheet-tabs');
             const dashboardContent = document.getElementById('dashboard-content');
@@ -225,10 +226,10 @@
                     </div>
                     <h3 class="mb-4">${title}</h3>
                     <div class="row g-4 mb-4" id="charts-container">
-                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Género</div><div class="card-body d-flex flex-column" style="height: 400px;"><div class="chart-container"><canvas id="chart-gender"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-gender"></tbody></table></div></div></div></div>
-                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Edad</div><div class="card-body d-flex flex-column" style="height: 400px;"><div class="chart-container"><canvas id="chart-age"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-age"></tbody></table></div></div></div></div>
-                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Grupo Poblacional</div><div class="card-body d-flex flex-column" style="height: 400px;"><div class="chart-container"><canvas id="chart-population"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-population"></tbody></table></div></div></div></div>
-                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Grupo Étnico</div><div class="card-body d-flex flex-column" style="height: 400px;"><div class="chart-container"><canvas id="chart-ethnic"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-ethnic"></tbody></table></div></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Género</div><div class="card-body d-flex flex-column"><div class="chart-container"><canvas id="chart-gender"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-gender"></tbody></table></div></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Edad</div><div class="card-body d-flex flex-column"><div class="chart-container"><canvas id="chart-age"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-age"></tbody></table></div></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Grupo Poblacional</div><div class="card-body d-flex flex-column"><div class="chart-container"><canvas id="chart-population"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-population"></tbody></table></div></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Grupo Étnico</div><div class="card-body d-flex flex-column"><div class="chart-container"><canvas id="chart-ethnic"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-ethnic"></tbody></table></div></div></div></div>
                         ${state.activeSheet !== 'summary' ? `<div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Línea de Tiempo</div><div class="card-body" style="height: 400px;"><div class="chart-container"><canvas id="chart-timeline"></canvas></div></div></div></div>` : ''}
                     </div>
                     ${detailTableHtml}`;
@@ -305,6 +306,7 @@
             };
 
             const updateUI = (data) => {
+                state.currentViewData = data; // Guardar datos actuales para el PDF
                 updateKPIs(data);
                 renderCharts(data);
                 renderChartTables(data);
@@ -394,45 +396,11 @@
             // =================================================================================
             // MÓDULO DE EXPORTACIÓN A PDF
             // =================================================================================
-            const getAppliedFiltersText = () => {
-                const selections = getSelections();
-                const filterTexts = [];
-
-                if (selections.startDate) filterTexts.push(`Fecha Inicio: ${selections.startDate}`);
-                if (selections.endDate) filterTexts.push(`Fecha Fin: ${selections.endDate}`);
-                
-                for (const key in selections.categorical) {
-                    filterTexts.push(`${key}: ${selections.categorical[key].join(', ')}`);
-                }
-                if (selections.population.length > 0) {
-                    filterTexts.push(`Demografía: ${selections.population.join(', ')}`);
-                }
-
-                return filterTexts.length > 0 ? filterTexts : ["Ninguno"];
-            };
-
-            const addHeaderToPage = (doc, title) => {
-                const headerColor = htmlEl.dataset.bsTheme === 'dark' ? '#0d6efd' : '#0d6efd';
-                doc.setFillColor(headerColor);
-                doc.rect(0, 0, doc.internal.pageSize.width, 25, 'F');
-                doc.setFontSize(20).setFont(undefined, 'bold').setTextColor('#FFFFFF');
-                doc.text('Informe de Analítica', 15, 15);
-                doc.setFontSize(12).setFont(undefined, 'normal');
-                doc.text(`Vista: ${title}`, 15, 21);
-            };
-
-            const addFooterToPage = (doc, pageNum, totalPages) => {
-                const pageHeight = doc.internal.pageSize.height;
-                doc.setFontSize(8).setTextColor('#888888');
-                const dateText = `Generado el: ${new Date().toLocaleString('es-CO')}`;
-                doc.text(dateText, 15, pageHeight - 10);
-                doc.text(`Página ${pageNum} de ${totalPages}`, doc.internal.pageSize.width - 35, pageHeight - 10);
-            };
-
             const generatePDF = async () => {
                 toggleLoader(true, 'Generando informe PDF...');
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+                const autoTable = window.jspdf.autoTable; // Acceder a la función autoTable
 
                 const title = state.activeSheet === 'summary' ? 'Resumen General' : `Componente: ${state.activeSheet}`;
                 const filename = `Informe_${title.replace(/ /g, '_')}_${new Date().toLocaleDateString('es-CO')}.pdf`;
@@ -440,56 +408,91 @@
                 const pageHeight = doc.internal.pageSize.height;
                 const margin = 15;
 
-                addHeaderToPage(doc, title);
+                const addHeaderAndFooter = () => {
+                    const totalPages = doc.internal.getNumberOfPages();
+                    for (let i = 1; i <= totalPages; i++) {
+                        doc.setPage(i);
+                        // Encabezado
+                        doc.setFillColor('#212529'); // Color oscuro
+                        doc.rect(0, 0, doc.internal.pageSize.width, 25, 'F');
+                        doc.setFontSize(20).setFont(undefined, 'bold').setTextColor('#FFFFFF');
+                        doc.text('Informe de Analítica', margin, 15);
+                        doc.setFontSize(12).setFont(undefined, 'normal');
+                        doc.text(`Vista: ${title}`, margin, 21);
+                        
+                        // Pie de página
+                        doc.setFontSize(8).setTextColor('#888888');
+                        const dateText = `Generado el: ${new Date().toLocaleString('es-CO')}`;
+                        doc.text(dateText, margin, pageHeight - 10);
+                        doc.text(`Página ${i} de ${totalPages}`, doc.internal.pageSize.width - 35, pageHeight - 10);
+                    }
+                };
 
-                // Add applied filters section
+                // Sección de Filtros Aplicados
                 doc.setFontSize(12).setFont(undefined, 'bold').setTextColor('#000000');
                 doc.text('Filtros Aplicados', margin, yPosition);
                 yPosition += 7;
                 doc.setFontSize(9).setFont(undefined, 'normal');
-                const filterLines = doc.splitTextToSize(getAppliedFiltersText().join(' | '), doc.internal.pageSize.width - margin * 2);
+                const selections = getSelections();
+                const filterTexts = [];
+                if (selections.startDate) filterTexts.push(`Fecha Inicio: ${selections.startDate}`);
+                if (selections.endDate) filterTexts.push(`Fecha Fin: ${selections.endDate}`);
+                for (const key in selections.categorical) { filterTexts.push(`${key}: ${selections.categorical[key].join(', ')}`); }
+                if (selections.population.length > 0) { filterTexts.push(`Demografía: ${selections.population.join(', ')}`); }
+                const filterLines = doc.splitTextToSize(filterTexts.length > 0 ? filterTexts.join(' | ') : 'Ninguno', doc.internal.pageSize.width - margin * 2);
                 doc.text(filterLines, margin, yPosition);
                 yPosition += filterLines.length * 5 + 10;
                 
+                // KPIs
                 const kpiContainer = document.getElementById('kpi-cards-container');
                 const kpiCanvas = await html2canvas(kpiContainer, { scale: 2, backgroundColor: null });
                 const kpiImgData = kpiCanvas.toDataURL('image/png');
-                const kpiImgProps = doc.getImageProperties(kpiImgData);
-                const kpiImgWidth = doc.internal.pageSize.width - margin * 2;
-                const kpiImgHeight = (kpiImgProps.height * kpiImgWidth) / kpiImgProps.width;
-                doc.addImage(kpiImgData, 'PNG', margin, yPosition, kpiImgWidth, kpiImgHeight);
-                yPosition += kpiImgHeight + 10;
-                
+                doc.addImage(kpiImgData, 'PNG', margin, yPosition, doc.internal.pageSize.width - margin * 2, 0);
+                yPosition = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : yPosition + 40;
+
+                // Gráficos y Tablas
                 const chartCards = document.querySelectorAll('#charts-container .chart-card');
                 for (let i = 0; i < chartCards.length; i++) {
                     const card = chartCards[i];
-                    const canvas = await html2canvas(card, { scale: 2, backgroundColor: null });
-                    const imgData = canvas.toDataURL('image/png');
-                    const imgProps = doc.getImageProperties(imgData);
-                    const imgWidth = (doc.internal.pageSize.width / 2) - margin * 1.5;
-                    const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-
-                    const xPosition = (i % 2 === 0) ? margin : (doc.internal.pageSize.width / 2) + (margin / 2);
-
-                    if (i % 2 === 0 && yPosition + imgHeight > pageHeight - margin) {
+                    if (yPosition > pageHeight - 80) { // Margen para el gráfico
                         doc.addPage();
                         yPosition = 35;
-                        addHeaderToPage(doc, title);
                     }
-
-                    doc.addImage(imgData, 'PNG', xPosition, yPosition, imgWidth, imgHeight);
-
-                    if (i % 2 !== 0 || i === chartCards.length - 1) {
-                        yPosition += imgHeight + 10;
-                    }
+                    const canvas = await html2canvas(card, { scale: 2, backgroundColor: null });
+                    const imgData = canvas.toDataURL('image/png');
+                    doc.addImage(imgData, 'PNG', margin, yPosition, doc.internal.pageSize.width - margin * 2, 0);
+                    yPosition = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : yPosition + 90;
                 }
 
-                const pageCount = doc.internal.getNumberOfPages();
-                for(let i = 1; i <= pageCount; i++) {
-                    doc.setPage(i);
-                    addFooterToPage(doc, i, pageCount);
-                }
+                // Tabla de Datos Detallada (si aplica)
+                if (state.activeSheet !== 'summary' && state.currentViewData.length > 0) {
+                    doc.addPage();
+                    yPosition = 35;
+                    doc.setFontSize(12).setFont(undefined, 'bold').setTextColor('#000000');
+                    doc.text('Datos Detallados', margin, yPosition);
+                    
+                    const tableHead = [['Actividad', 'Fecha', 'Municipio', 'Total', 'URL Evidencia']];
+                    const tableBody = state.currentViewData.map(row => [
+                        row['NOMBRE DE LA ACTIVIDAD'],
+                        row['FECHA'],
+                        row['MUNICIPIO'],
+                        row['TOTAL ATENCION'],
+                        row['LINK DE EVIDENCIA']
+                    ]);
 
+                    autoTable(doc, {
+                        head: tableHead,
+                        body: tableBody,
+                        startY: yPosition + 5,
+                        theme: 'grid',
+                        headStyles: { fillColor: '#212529' },
+                        didDrawPage: (data) => {
+                           // Se podría añadir encabezado y pie de página aquí también si la tabla se pagina
+                        }
+                    });
+                }
+                
+                addHeaderAndFooter();
                 doc.save(filename);
                 toggleLoader(false);
             };
