@@ -133,29 +133,6 @@
                 loader.style.display = show ? 'flex' : 'none';
             };
 
-            const normalizeDate = (value) => {
-                if (!value) return "";
-                if (typeof value === 'number' && value > 25569) { // Excel serial date number for dates after 1970
-                    return new Date(Date.UTC(1900, 0, value - 1)).toISOString().split('T')[0];
-                }
-                if (typeof value === 'string') {
-                    let parts;
-                    if (value.includes('/')) {
-                        parts = value.split('/');
-                        if (parts.length === 3) {
-                            // Asumir DD/MM/YYYY y normalizar
-                            return `${parts[2]}-${String(parts[1]).padStart(2, '0')}-${String(parts[0]).padStart(2, '0')}`;
-                        }
-                    } else if (value.includes('-')) {
-                        parts = value.split('-');
-                        if (parts.length === 3 && parts[0].length === 4) {
-                            return value; // Ya está en formato YYYY-MM-DD
-                        }
-                    }
-                }
-                return ""; // Si no se puede parsear, devolver vacío
-            };
-
             const processExcelData = (arrayBuffer) => {
                 const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
                 state.data = {}; state.allData = []; state.dataSheetNames = [];
@@ -172,11 +149,8 @@
                         const obj = {};
                         expectedHeaders.forEach((header, i) => {
                             let value = row[i];
-                            if (header === 'FECHA') {
-                                value = normalizeDate(value);
-                            } else if (numericHeaders.includes(header)) {
-                                value = parseInt(value, 10) || 0;
-                            }
+                            if (numericHeaders.includes(header)) value = parseInt(value, 10) || 0;
+                            if (header === 'FECHA' && typeof value === 'number' && value > 1) value = new Date(Date.UTC(1900, 0, value - 1)).toISOString().split('T')[0];
                             obj[header] = value;
                         });
                         return obj;
@@ -426,6 +400,7 @@
                 toggleLoader(true, 'Generando informe PDF...');
                 try {
                     const doc = new window.jspdf.jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+
                     const title = state.activeSheet === 'summary' ? 'Resumen General' : `Componente: ${state.activeSheet}`;
                     const filename = `Informe_${title.replace(/ /g, '_')}_${new Date().toLocaleDateString('es-CO')}.pdf`;
                     let yPosition = 35;
@@ -463,30 +438,31 @@
                     yPosition += kpiCanvas.height * ( (doc.internal.pageSize.width - margin * 2) / kpiCanvas.width ) + 10;
                     
                     const chartCards = Array.from(document.querySelectorAll('#charts-container .chart-card'));
-                    let rowMaxHeight = 0;
                     for (let i = 0; i < chartCards.length; i++) {
                         const card = chartCards[i];
-                        const xPosition = (i % 2 === 0) ? margin : (doc.internal.pageSize.width / 2) + 5;
-                        const imgWidth = (doc.internal.pageSize.width / 2) - margin - 5;
-                        
-                        if (yPosition + (rowMaxHeight > 0 ? 0 : 100) > pageHeight - margin) { // Heurística para evitar corte
+                        const canvas = await html2canvas(card, { scale: 2, backgroundColor: null });
+                        const imgWidth = (doc.internal.pageSize.width / 2) - margin;
+                        const imgHeight = canvas.height * (imgWidth / canvas.width);
+
+                        if (yPosition + imgHeight > pageHeight - margin) {
                             doc.addPage();
                             addHeader(doc);
                             yPosition = 35;
                         }
-
-                        const canvas = await html2canvas(card, { scale: 2, backgroundColor: null });
-                        const imgHeight = canvas.height * (imgWidth / canvas.width);
+                        const xPosition = (i % 2 === 0) ? margin : (doc.internal.pageSize.width / 2) + 5;
                         doc.addImage(canvas.toDataURL('image/png'), 'PNG', xPosition, yPosition, imgWidth, 0);
-                        rowMaxHeight = Math.max(rowMaxHeight, imgHeight);
 
                         if (i % 2 !== 0 || i === chartCards.length - 1) {
-                            yPosition += rowMaxHeight + 10;
-                            rowMaxHeight = 0;
+                            yPosition += imgHeight + 10;
                         }
                     }
 
                     if (state.activeSheet !== 'summary' && state.currentViewData.length > 0) {
+                        if (yPosition > pageHeight - 40) {
+                             doc.addPage();
+                             addHeader(doc);
+                             yPosition = 35;
+                        }
                         const tableHead = [['Actividad', 'Fecha', 'Municipio', 'Total', 'URL Evidencia']];
                         const tableBody = state.currentViewData.map(row => [ row['NOMBRE DE LA ACTIVIDAD'], row['FECHA'], row['MUNICIPIO'], row['TOTAL ATENCION'], row['LINK DE EVIDENCIA'] ]);
                         
