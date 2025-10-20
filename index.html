@@ -133,6 +133,29 @@
                 loader.style.display = show ? 'flex' : 'none';
             };
 
+            const normalizeDate = (value) => {
+                if (!value) return "";
+                if (typeof value === 'number' && value > 25569) { // Excel serial date number for dates after 1970
+                    return new Date(Date.UTC(1900, 0, value - 1)).toISOString().split('T')[0];
+                }
+                if (typeof value === 'string') {
+                    let parts;
+                    if (value.includes('/')) {
+                        parts = value.split('/');
+                        if (parts.length === 3) {
+                            // Asumir DD/MM/YYYY y normalizar
+                            return `${parts[2]}-${String(parts[1]).padStart(2, '0')}-${String(parts[0]).padStart(2, '0')}`;
+                        }
+                    } else if (value.includes('-')) {
+                        parts = value.split('-');
+                        if (parts.length === 3 && parts[0].length === 4) {
+                            return value; // Ya está en formato YYYY-MM-DD
+                        }
+                    }
+                }
+                return ""; // Si no se puede parsear, devolver vacío
+            };
+
             const processExcelData = (arrayBuffer) => {
                 const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
                 state.data = {}; state.allData = []; state.dataSheetNames = [];
@@ -149,8 +172,11 @@
                         const obj = {};
                         expectedHeaders.forEach((header, i) => {
                             let value = row[i];
-                            if (numericHeaders.includes(header)) value = parseInt(value, 10) || 0;
-                            if (header === 'FECHA' && typeof value === 'number' && value > 1) value = new Date(Date.UTC(1900, 0, value - 1)).toISOString().split('T')[0];
+                            if (header === 'FECHA') {
+                                value = normalizeDate(value);
+                            } else if (numericHeaders.includes(header)) {
+                                value = parseInt(value, 10) || 0;
+                            }
                             obj[header] = value;
                         });
                         return obj;
@@ -399,9 +425,7 @@
             const generatePDF = async () => {
                 toggleLoader(true, 'Generando informe PDF...');
                 try {
-                    // 💡 FIX: Usar el constructor global que ha sido extendido por el plugin
                     const doc = new window.jspdf.jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-
                     const title = state.activeSheet === 'summary' ? 'Resumen General' : `Componente: ${state.activeSheet}`;
                     const filename = `Informe_${title.replace(/ /g, '_')}_${new Date().toLocaleDateString('es-CO')}.pdf`;
                     let yPosition = 35;
@@ -417,13 +441,6 @@
                         docInstance.text(`Vista: ${title}`, margin, 21);
                     };
 
-                    const addFooter = (docInstance, pageNum, totalPages) => {
-                        docInstance.setFontSize(8).setTextColor('#888888');
-                        const dateText = `Generado el: ${new Date().toLocaleString('es-CO')}`;
-                        docInstance.text(dateText, margin, pageHeight - 10);
-                        docInstance.text(`Página ${pageNum} de ${totalPages}`, docInstance.internal.pageSize.width - 35, pageHeight - 10);
-                    };
-                    
                     addHeader(doc);
 
                     doc.setFontSize(12).setFont(undefined, 'bold').setTextColor('#000000');
@@ -446,35 +463,33 @@
                     yPosition += kpiCanvas.height * ( (doc.internal.pageSize.width - margin * 2) / kpiCanvas.width ) + 10;
                     
                     const chartCards = Array.from(document.querySelectorAll('#charts-container .chart-card'));
+                    let rowMaxHeight = 0;
                     for (let i = 0; i < chartCards.length; i++) {
                         const card = chartCards[i];
-                        const canvas = await html2canvas(card, { scale: 2, backgroundColor: null });
-                        const imgWidth = (doc.internal.pageSize.width / 2) - margin;
-                        const imgHeight = canvas.height * (imgWidth / canvas.width);
-
-                        if (yPosition + imgHeight > pageHeight - margin) {
+                        const xPosition = (i % 2 === 0) ? margin : (doc.internal.pageSize.width / 2) + 5;
+                        const imgWidth = (doc.internal.pageSize.width / 2) - margin - 5;
+                        
+                        if (yPosition + (rowMaxHeight > 0 ? 0 : 100) > pageHeight - margin) { // Heurística para evitar corte
                             doc.addPage();
                             addHeader(doc);
                             yPosition = 35;
                         }
-                        const xPosition = (i % 2 === 0) ? margin : (doc.internal.pageSize.width / 2) + 5;
+
+                        const canvas = await html2canvas(card, { scale: 2, backgroundColor: null });
+                        const imgHeight = canvas.height * (imgWidth / canvas.width);
                         doc.addImage(canvas.toDataURL('image/png'), 'PNG', xPosition, yPosition, imgWidth, 0);
+                        rowMaxHeight = Math.max(rowMaxHeight, imgHeight);
 
                         if (i % 2 !== 0 || i === chartCards.length - 1) {
-                            yPosition += imgHeight + 10;
+                            yPosition += rowMaxHeight + 10;
+                            rowMaxHeight = 0;
                         }
                     }
 
                     if (state.activeSheet !== 'summary' && state.currentViewData.length > 0) {
-                        if (yPosition > pageHeight - 40) {
-                             doc.addPage();
-                             addHeader(doc);
-                             yPosition = 35;
-                        }
                         const tableHead = [['Actividad', 'Fecha', 'Municipio', 'Total', 'URL Evidencia']];
                         const tableBody = state.currentViewData.map(row => [ row['NOMBRE DE LA ACTIVIDAD'], row['FECHA'], row['MUNICIPIO'], row['TOTAL ATENCION'], row['LINK DE EVIDENCIA'] ]);
                         
-                        // 💡 FIX: Usar la llamada correcta al plugin
                         doc.autoTable({
                             head: tableHead,
                             body: tableBody,
@@ -488,7 +503,10 @@
                     const pageCount = doc.internal.getNumberOfPages();
                     for(let i = 1; i <= pageCount; i++) {
                         doc.setPage(i);
-                        addFooter(doc, i, pageCount);
+                        doc.setFontSize(8).setTextColor('#888888');
+                        const dateText = `Generado el: ${new Date().toLocaleString('es-CO')}`;
+                        doc.text(dateText, margin, pageHeight - 10);
+                        doc.text(`Página ${i} de ${pageCount}`, doc.internal.pageSize.width - 35, pageHeight - 10);
                     }
 
                     doc.save(filename);
@@ -496,7 +514,6 @@
                     console.error("Error al generar el PDF:", err);
                     alert("Ocurrió un error al generar el PDF. Revise la consola para más detalles.");
                 } finally {
-                    // 💡 FIX: Asegurar que el loader siempre se oculte
                     toggleLoader(false);
                 }
             };
