@@ -65,6 +65,18 @@
         .dropdown-item-text:hover { background-color: rgba(0,0,0,0.1); }
         [data-bs-theme="dark"] .dropdown-item-text:hover { background-color: rgba(255,255,255,0.1); }
         .table { --bs-table-bg: transparent; }
+
+        /* 💡 FIX: Estructura para contener los gráficos y sus tablas */
+        .chart-container {
+            position: relative;
+            flex-grow: 1;
+            min-height: 200px; /* Altura mínima para el gráfico */
+        }
+        .table-container {
+            flex-shrink: 0;
+            max-height: 120px; /* Altura máxima para la tabla */
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -97,7 +109,6 @@
         <div id="dashboard-content"></div>
     </main>
 
-    <!-- Scripts (CDN) -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -186,13 +197,11 @@
                         sheetTabsContainer.querySelector('.nav-link.active').classList.remove('active');
                         e.currentTarget.classList.add('active');
                         state.activeSheet = e.currentTarget.dataset.sheet;
-                        
-                        // 💡 FIX: Borrar el contenido fuerza la reconstrucción del UI en applyFilters
                         dashboardContent.innerHTML = '';
                         applyFilters(); 
                     });
                 });
-                applyFilters(); // Render inicial
+                applyFilters();
             };
             
             const renderDashboardUI = (title, data) => {
@@ -204,7 +213,7 @@
                 const populationFilterHtml = createConsolidatedPopulationFilter(populationColumns);
 
                 const detailTableHtml = state.activeSheet !== 'summary' ? `
-                    <div class="card glass-card">
+                    <div class="card glass-card mt-4">
                         <div class="card-header bg-transparent fw-bold"><i class="bi bi-table me-2"></i>Datos Completos</div>
                         <div class="card-body"><div class="table-responsive"><table id="data-table" class="table table-hover" style="width:100%"></table></div></div>
                     </div>` : '';
@@ -226,11 +235,11 @@
                     </div>
                     <h3 class="mb-4">${title}</h3>
                     <div class="row g-4 mb-4" id="charts-container">
-                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Género</div><div class="card-body"><canvas id="chart-gender"></canvas><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-gender"></tbody></table></div></div></div>
-                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Edad</div><div class="card-body"><canvas id="chart-age"></canvas><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-age"></tbody></table></div></div></div>
-                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Grupo Poblacional</div><div class="card-body"><canvas id="chart-population"></canvas><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-population"></tbody></table></div></div></div>
-                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Grupo Étnico</div><div class="card-body"><canvas id="chart-ethnic"></canvas><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-ethnic"></tbody></table></div></div></div>
-                        ${state.activeSheet !== 'summary' ? `<div class="col-12"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Línea de Tiempo de Actividades</div><div class="card-body" style="min-height: 350px;"><canvas id="chart-timeline"></canvas></div></div></div>` : ''}
+                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Género</div><div class="card-body d-flex flex-column" style="height: 400px;"><div class="chart-container"><canvas id="chart-gender"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-gender"></tbody></table></div></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Edad</div><div class="card-body d-flex flex-column" style="height: 400px;"><div class="chart-container"><canvas id="chart-age"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-age"></tbody></table></div></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Grupo Poblacional</div><div class="card-body d-flex flex-column" style="height: 400px;"><div class="chart-container"><canvas id="chart-population"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-population"></tbody></table></div></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Grupo Étnico</div><div class="card-body d-flex flex-column" style="height: 400px;"><div class="chart-container"><canvas id="chart-ethnic"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-ethnic"></tbody></table></div></div></div></div>
+                        ${state.activeSheet !== 'summary' ? `<div class="col-12"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Línea de Tiempo de Actividades</div><div class="card-body" style="height: 350px;"><div class="chart-container"><canvas id="chart-timeline"></canvas></div></div></div></div>` : ''}
                     </div>
                     ${detailTableHtml}`;
                 
@@ -255,6 +264,7 @@
                 const title = state.activeSheet === 'summary' ? 'Análisis Consolidado' : `Análisis del Componente: ${state.activeSheet}`;
                 if (!document.getElementById('filters-container')) {
                     renderDashboardUI(title, sourceData);
+                    return; // Return here to prevent running filter logic on a newly built UI
                 }
                 const selections = getSelections();
                 const filteredData = sourceData.filter(row => {
@@ -372,8 +382,18 @@
             };
 
             const renderDataTable = (data) => {
+                // 💡 FIX: Solo se ejecuta si el elemento de la tabla existe
+                if (!document.getElementById('data-table')) return;
                 if (state.dataTable) state.dataTable.destroy();
-                const columns = expectedHeaders.map(header => ({ title: header, data: header, defaultContent: "", render: (d) => (header === 'LINK DE EVIDENCIA' && d && d.startsWith('http')) ? `<a href="${d}" target="_blank" rel="noopener noreferrer">Ver</a>` : d }));
+                const columns = expectedHeaders.map(header => ({ 
+                    title: header, 
+                    data: header, 
+                    defaultContent: "", 
+                    // 💡 FIX: Se asegura que el dato sea un string antes de usar .startsWith
+                    render: (d) => (header === 'LINK DE EVIDENCIA' && typeof d === 'string' && d.startsWith('http')) 
+                        ? `<a href="${d}" target="_blank" rel="noopener noreferrer">Ver</a>` 
+                        : d 
+                }));
                 state.dataTable = new DataTable('#data-table', { data, columns, responsive: true, language: { url: '//cdn.datatables.net/plug-ins/2.0.8/i18n/es-ES.json' }, pageLength: 10, lengthMenu: [10, 25, 50], destroy: true });
             };
             
@@ -383,20 +403,15 @@
                 applyFilters();
             };
 
-            // =================================================================================
-            // MÓDULO DE EXPORTACIÓN A PDF
-            // =================================================================================
             const generatePDF = async () => {
                 toggleLoader(true, 'Generando informe PDF...');
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-
                 const title = state.activeSheet === 'summary' ? 'Resumen General' : `Componente: ${state.activeSheet}`;
                 const filename = `Informe_${title.replace(/ /g, '_')}_${new Date().toLocaleDateString('es-CO')}.pdf`;
                 let yPosition = 20;
                 const pageHeight = doc.internal.pageSize.height;
                 const margin = 15;
-
                 doc.setFontSize(20).setFont(undefined, 'bold');
                 doc.text('Informe de Analítica', margin, yPosition);
                 yPosition += 8;
@@ -406,7 +421,6 @@
                 doc.setFontSize(10);
                 doc.text(`Fecha de Generación: ${new Date().toLocaleString('es-CO')}`, margin, yPosition);
                 yPosition += 15;
-
                 const kpiContainer = document.getElementById('kpi-cards-container');
                 const kpiCanvas = await html2canvas(kpiContainer, { scale: 2, backgroundColor: null });
                 const kpiImgData = kpiCanvas.toDataURL('image/png');
@@ -415,7 +429,6 @@
                 const kpiImgHeight = (kpiImgProps.height * kpiImgWidth) / kpiImgProps.width;
                 doc.addImage(kpiImgData, 'PNG', margin, yPosition, kpiImgWidth, kpiImgHeight);
                 yPosition += kpiImgHeight + 10;
-                
                 const chartCards = document.querySelectorAll('#charts-container .chart-card');
                 for (let i = 0; i < chartCards.length; i++) {
                     const card = chartCards[i];
@@ -424,7 +437,6 @@
                     const imgProps = doc.getImageProperties(imgData);
                     const imgWidth = doc.internal.pageSize.width - margin * 2;
                     const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-
                     if (yPosition + imgHeight > pageHeight - margin) {
                         doc.addPage();
                         yPosition = margin;
@@ -432,19 +444,16 @@
                     doc.addImage(imgData, 'PNG', margin, yPosition, imgWidth, imgHeight);
                     yPosition += imgHeight + 10;
                 }
-
                 const pageCount = doc.internal.getNumberOfPages();
                 for(let i = 1; i <= pageCount; i++) {
                     doc.setPage(i);
                     doc.setFontSize(8);
                     doc.text(`Página ${i} de ${pageCount}`, margin, pageHeight - 10);
                 }
-
                 doc.save(filename);
                 toggleLoader(false);
             };
 
-            // Event Listeners
             updateDataBtn.addEventListener('click', fetchData);
             downloadPdfBtn.addEventListener('click', generatePDF);
             themeSwitch.addEventListener('change', handleThemeSwitch);
