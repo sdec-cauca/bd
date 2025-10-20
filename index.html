@@ -398,6 +398,7 @@
             const generatePDF = async () => {
                 toggleLoader(true, 'Generando informe PDF...');
                 const { jsPDF } = window.jspdf;
+                const autoTable = window.jspdf.autoTable;
                 const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
 
                 const title = state.activeSheet === 'summary' ? 'Resumen General' : `Componente: ${state.activeSheet}`;
@@ -406,27 +407,22 @@
                 const pageHeight = doc.internal.pageSize.height;
                 const margin = 15;
 
-                const addHeader = (docInstance) => {
-                    docInstance.setFillColor('#212529');
-                    docInstance.rect(0, 0, docInstance.internal.pageSize.width, 25, 'F');
-                    docInstance.setFontSize(20).setFont(undefined, 'bold').setTextColor('#FFFFFF');
-                    docInstance.text('Informe de Analítica', margin, 15);
-                    docInstance.setFontSize(12).setFont(undefined, 'normal');
-                    docInstance.text(`Vista: ${title}`, margin, 21);
-                };
-
-                const addFooter = (docInstance) => {
-                    const pageCount = docInstance.internal.getNumberOfPages();
-                    for (let i = 1; i <= pageCount; i++) {
+                const addHeaderAndFooter = (docInstance) => {
+                    const totalPages = docInstance.internal.getNumberOfPages();
+                    for (let i = 1; i <= totalPages; i++) {
                         docInstance.setPage(i);
+                        docInstance.setFillColor('#212529');
+                        docInstance.rect(0, 0, docInstance.internal.pageSize.width, 25, 'F');
+                        docInstance.setFontSize(20).setFont(undefined, 'bold').setTextColor('#FFFFFF');
+                        docInstance.text('Informe de Analítica', margin, 15);
+                        docInstance.setFontSize(12).setFont(undefined, 'normal');
+                        docInstance.text(`Vista: ${title}`, margin, 21);
                         docInstance.setFontSize(8).setTextColor('#888888');
                         const dateText = `Generado el: ${new Date().toLocaleString('es-CO')}`;
                         docInstance.text(dateText, margin, pageHeight - 10);
-                        docInstance.text(`Página ${i} de ${pageCount}`, docInstance.internal.pageSize.width - 35, pageHeight - 10);
+                        docInstance.text(`Página ${i} de ${totalPages}`, docInstance.internal.pageSize.width - 35, pageHeight - 10);
                     }
                 };
-
-                addHeader(doc);
 
                 doc.setFontSize(12).setFont(undefined, 'bold').setTextColor('#000000');
                 doc.text('Filtros Aplicados', margin, yPosition);
@@ -448,28 +444,15 @@
                 yPosition += kpiCanvas.height * ( (doc.internal.pageSize.width - margin * 2) / kpiCanvas.width ) + 10;
                 
                 const chartCards = document.querySelectorAll('#charts-container .chart-card');
-                let rowMaxHeight = 0;
                 for (let i = 0; i < chartCards.length; i++) {
                     const card = chartCards[i];
-                    const xPosition = (i % 2 === 0) ? margin : (doc.internal.pageSize.width / 2) + 5;
-                    const imgWidth = (doc.internal.pageSize.width / 2) - margin - 5;
-                    
-                    const canvas = await html2canvas(card, { scale: 2, backgroundColor: null });
-                    const imgHeight = canvas.height * (imgWidth / canvas.width);
-
-                    if (yPosition + imgHeight > pageHeight - margin) {
+                    if (yPosition > pageHeight - 80) {
                         doc.addPage();
-                        addHeader(doc);
                         yPosition = 35;
                     }
-
-                    doc.addImage(canvas.toDataURL('image/png'), 'PNG', xPosition, yPosition, imgWidth, 0);
-                    rowMaxHeight = Math.max(rowMaxHeight, imgHeight);
-
-                    if (i % 2 !== 0 || i === chartCards.length - 1) {
-                        yPosition += rowMaxHeight + 10;
-                        rowMaxHeight = 0;
-                    }
+                    const canvas = await html2canvas(card, { scale: 2, backgroundColor: null });
+                    doc.addImage(canvas.toDataURL('image/png'), 'PNG', margin, yPosition, doc.internal.pageSize.width - margin * 2, 0);
+                    yPosition += canvas.height * ( (doc.internal.pageSize.width - margin * 2) / canvas.width ) + 10;
                 }
 
                 if (state.activeSheet !== 'summary' && state.currentViewData.length > 0) {
@@ -488,7 +471,7 @@
                     });
                 }
                 
-                addFooter(doc);
+                addHeaderAndFooter(doc);
                 doc.save(filename);
                 toggleLoader(false);
             };
