@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Analítico Profesional</title>
-    <link rel="icon" href="data:,"> <!-- Suprime el error de favicon.ico -->
     
     <!-- Dependencias (CDN) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -34,14 +33,18 @@
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
             transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
         }
-        .glass-card:hover { transform: translateY(-5px); }
+        .glass-card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2); }
         [data-bs-theme="dark"] .glass-card { background: rgba(44, 48, 52, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2); }
+        [data-bs-theme="dark"] .glass-card:hover { box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.3); }
         .filter-card { position: relative; z-index: 20; }
         .navbar {
-            background: rgba(255, 255, 255, 0.3) !important; -webkit-backdrop-filter: blur(10px);
-            backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0,0,0,0.05); z-index: 1030;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px); 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+            z-index: 1030;
         }
-        [data-bs-theme="dark"] .navbar { background: rgba(33, 37, 41, 0.5) !important; }
+        [data-bs-theme="light"] .navbar { background: rgba(52, 58, 64, 0.75) !important; }
+        [data-bs-theme="dark"] .navbar { background: rgba(20, 25, 30, 0.75) !important; }
         #sidebar {
             width: var(--sidebar-width); height: 100vh; position: fixed; top: 0; left: 0;
             padding-top: var(--navbar-height); z-index: 1020;
@@ -66,7 +69,7 @@
         [data-bs-theme="dark"] .dropdown-item-text:hover { background-color: rgba(255,255,255,0.1); }
         .table { --bs-table-bg: transparent; }
         .chart-container { position: relative; flex-grow: 1; min-height: 200px; }
-        .table-container { flex-shrink: 0; }
+        .table-container { flex-shrink: 0; /* Corrección: Se elimina max-height y overflow-y para evitar el scroll */ }
     </style>
 </head>
 <body>
@@ -76,7 +79,8 @@
         <p class="mt-3 fs-5">Procesando...</p>
     </div>
 
-    <nav class="navbar navbar-expand-lg fixed-top">
+    <!-- Corrección: Se añade la clase 'navbar-dark' para que el texto sea blanco sobre el fondo oscuro -->
+    <nav class="navbar navbar-expand-lg fixed-top navbar-dark">
         <div class="container-fluid">
             <button class="btn btn-outline-secondary border-0" id="sidebar-toggle-btn" title="Menú"><i class="bi bi-list fs-4"></i></button>
             <a class="navbar-brand fw-bold ms-2" href="#"><i class="bi bi-bar-chart-line-fill me-2"></i>Dashboard Analítico</a>
@@ -107,7 +111,8 @@
     <script src="https://cdn.datatables.net/2.0.8/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf-autotable.umd.min.js"></script>
+    <!-- Agregado: Librería para generar tablas automáticamente en el PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -116,7 +121,7 @@
             const expectedHeaders = [ 'COMPONENTE', 'NOMBRE DEL PROYECTO', 'NOMBRE DE LA ACTIVIDAD', 'FECHA', 'MUNICIPIO', 'VEREDA', 'HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO', 'TOTAL ATENCION', 'LINK DE EVIDENCIA' ];
             const numericHeaders = [ 'HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'TOTAL ATENCION', 'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO' ];
 
-            const state = { activeSheet: 'summary', allData: [], dataSheetNames: [], data: {}, charts: {}, dataTable: null, currentViewData: [] };
+            const state = { activeSheet: 'summary', allData: [], dataSheetNames: [], data: {}, charts: {}, dataTable: null };
             const loader = document.getElementById('loader');
             const sheetTabsContainer = document.getElementById('sheet-tabs');
             const dashboardContent = document.getElementById('dashboard-content');
@@ -226,10 +231,10 @@
                     </div>
                     <h3 class="mb-4">${title}</h3>
                     <div class="row g-4 mb-4" id="charts-container">
-                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Género</div><div class="card-body d-flex flex-column"><div class="chart-container"><canvas id="chart-gender"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-gender"></tbody></table></div></div></div></div>
-                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Edad</div><div class="card-body d-flex flex-column"><div class="chart-container"><canvas id="chart-age"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-age"></tbody></table></div></div></div></div>
-                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Grupo Poblacional</div><div class="card-body d-flex flex-column"><div class="chart-container"><canvas id="chart-population"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-population"></tbody></table></div></div></div></div>
-                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Grupo Étnico</div><div class="card-body d-flex flex-column"><div class="chart-container"><canvas id="chart-ethnic"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-ethnic"></tbody></table></div></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Género</div><div class="card-body d-flex flex-column" style="height: 400px;"><div class="chart-container"><canvas id="chart-gender"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-gender"></tbody></table></div></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Edad</div><div class="card-body d-flex flex-column" style="height: 400px;"><div class="chart-container"><canvas id="chart-age"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-age"></tbody></table></div></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Grupo Poblacional</div><div class="card-body d-flex flex-column" style="height: 400px;"><div class="chart-container"><canvas id="chart-population"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-population"></tbody></table></div></div></div></div>
+                        <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Grupo Étnico</div><div class="card-body d-flex flex-column" style="height: 400px;"><div class="chart-container"><canvas id="chart-ethnic"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-ethnic"></tbody></table></div></div></div></div>
                         ${state.activeSheet !== 'summary' ? `<div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Línea de Tiempo</div><div class="card-body" style="height: 400px;"><div class="chart-container"><canvas id="chart-timeline"></canvas></div></div></div></div>` : ''}
                     </div>
                     ${detailTableHtml}`;
@@ -306,7 +311,6 @@
             };
 
             const updateUI = (data) => {
-                state.currentViewData = data;
                 updateKPIs(data);
                 renderCharts(data);
                 renderChartTables(data);
@@ -327,7 +331,7 @@
             const getChartOptions = () => {
                 const isDark = htmlEl.dataset.bsTheme === 'dark';
                 const textColor = isDark ? '#fff' : '#495057';
-                return { responsive: true, maintainAspectRatio: false, animation: { duration: 500 }, plugins: { legend: { labels: { color: textColor, font: { size: 14 } } } }, advanced: { willReadFrequently: true } };
+                return { responsive: true, maintainAspectRatio: false, animation: { duration: 500 }, plugins: { legend: { labels: { color: textColor, font: { size: 14 } } } } };
             };
             
             const renderCharts = (data) => {
@@ -396,102 +400,132 @@
             // =================================================================================
             // MÓDULO DE EXPORTACIÓN A PDF
             // =================================================================================
+            const getAppliedFiltersText = () => {
+                const selections = getSelections();
+                const filterTexts = [];
+
+                if (selections.startDate) filterTexts.push(`Fecha Inicio: ${selections.startDate}`);
+                if (selections.endDate) filterTexts.push(`Fecha Fin: ${selections.endDate}`);
+                
+                for (const key in selections.categorical) {
+                    filterTexts.push(`${key}: ${selections.categorical[key].join(', ')}`);
+                }
+                if (selections.population.length > 0) {
+                    filterTexts.push(`Demografía: ${selections.population.join(', ')}`);
+                }
+
+                return filterTexts.length > 0 ? filterTexts.join(' | ') : "Ninguno";
+            };
+
+            const addHeaderToPage = (doc, title) => {
+                const headerColor = '#0d6efd';
+                doc.setFillColor(headerColor);
+                doc.rect(0, 0, doc.internal.pageSize.width, 25, 'F');
+                doc.setFontSize(20).setFont(undefined, 'bold').setTextColor('#FFFFFF');
+                doc.text('Informe de Analítica', 15, 15);
+                doc.setFontSize(12).setFont(undefined, 'normal');
+                doc.text(`Vista: ${title}`, 15, 21);
+            };
+
+            const addFooterToPage = (doc, pageNum, totalPages) => {
+                const pageHeight = doc.internal.pageSize.height;
+                doc.setFontSize(8).setTextColor('#888888');
+                const dateText = `Generado el: ${new Date().toLocaleString('es-CO')}`;
+                doc.text(dateText, 15, pageHeight - 10);
+                doc.text(`Página ${pageNum} de ${totalPages}`, doc.internal.pageSize.width - 35, pageHeight - 10);
+            };
+
             const generatePDF = async () => {
                 toggleLoader(true, 'Generando informe PDF...');
-                try {
-                    const doc = new window.jspdf.jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
 
-                    const title = state.activeSheet === 'summary' ? 'Resumen General' : `Componente: ${state.activeSheet}`;
-                    const filename = `Informe_${title.replace(/ /g, '_')}_${new Date().toLocaleDateString('es-CO')}.pdf`;
-                    let yPosition = 35;
-                    const pageHeight = doc.internal.pageSize.height;
-                    const margin = 15;
+                const title = state.activeSheet === 'summary' ? 'Resumen General' : `Componente: ${state.activeSheet}`;
+                const filename = `Informe_${title.replace(/ /g, '_')}_${new Date().toLocaleDateString('es-CO')}.pdf`;
+                let yPosition = 35;
+                const pageHeight = doc.internal.pageSize.height;
+                const margin = 15;
 
-                    const addHeader = (docInstance) => {
-                        docInstance.setFillColor('#212529');
-                        docInstance.rect(0, 0, docInstance.internal.pageSize.width, 25, 'F');
-                        docInstance.setFontSize(20).setFont(undefined, 'bold').setTextColor('#FFFFFF');
-                        docInstance.text('Informe de Analítica', margin, 15);
-                        docInstance.setFontSize(12).setFont(undefined, 'normal');
-                        docInstance.text(`Vista: ${title}`, margin, 21);
-                    };
+                addHeaderToPage(doc, title);
 
-                    addHeader(doc);
+                doc.setFontSize(12).setFont(undefined, 'bold').setTextColor(htmlEl.dataset.bsTheme === 'dark' ? 255 : 0);
+                doc.text('Filtros Aplicados', margin, yPosition);
+                yPosition += 7;
+                doc.setFontSize(9).setFont(undefined, 'normal');
+                const filterLines = doc.splitTextToSize(getAppliedFiltersText(), doc.internal.pageSize.width - margin * 2);
+                doc.text(filterLines, margin, yPosition);
+                yPosition += filterLines.length * 5 + 5;
+                
+                const kpiContainer = document.getElementById('kpi-cards-container');
+                const kpiCanvas = await html2canvas(kpiContainer, { scale: 2, backgroundColor: null });
+                const kpiImgData = kpiCanvas.toDataURL('image/png');
+                const kpiImgProps = doc.getImageProperties(kpiImgData);
+                const kpiImgWidth = doc.internal.pageSize.width - margin * 2;
+                const kpiImgHeight = (kpiImgProps.height * kpiImgWidth) / kpiImgProps.width;
+                doc.addImage(kpiImgData, 'PNG', margin, yPosition, kpiImgWidth, kpiImgHeight);
+                yPosition += kpiImgHeight + 10;
+                
+                const chartCards = document.querySelectorAll('#charts-container .chart-card');
+                for (let i = 0; i < chartCards.length; i++) {
+                    const card = chartCards[i];
+                    const canvas = await html2canvas(card, { scale: 2, backgroundColor: null });
+                    const imgData = canvas.toDataURL('image/png');
+                    const imgProps = doc.getImageProperties(imgData);
+                    const imgWidth = (doc.internal.pageSize.width / 2) - margin;
+                    const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+                    const xPosition = (i % 2 === 0) ? margin : (doc.internal.pageSize.width / 2);
 
-                    doc.setFontSize(12).setFont(undefined, 'bold').setTextColor('#000000');
-                    doc.text('Filtros Aplicados', margin, yPosition);
-                    yPosition += 7;
-                    doc.setFontSize(9).setFont(undefined, 'normal');
-                    const selections = getSelections();
-                    const filterTexts = [];
-                    if (selections.startDate) filterTexts.push(`Fecha Inicio: ${selections.startDate}`);
-                    if (selections.endDate) filterTexts.push(`Fecha Fin: ${selections.endDate}`);
-                    for (const key in selections.categorical) { filterTexts.push(`${key}: ${selections.categorical[key].join(', ')}`); }
-                    if (selections.population.length > 0) { filterTexts.push(`Demografía: ${selections.population.join(', ')}`); }
-                    const filterLines = doc.splitTextToSize(filterTexts.length > 0 ? filterTexts.join(' | ') : 'Ninguno', doc.internal.pageSize.width - margin * 2);
-                    doc.text(filterLines, margin, yPosition);
-                    yPosition += filterLines.length * 4 + 10;
-                    
-                    const kpiContainer = document.getElementById('kpi-cards-container');
-                    const kpiCanvas = await html2canvas(kpiContainer, { scale: 2, backgroundColor: null });
-                    doc.addImage(kpiCanvas.toDataURL('image/png'), 'PNG', margin, yPosition, doc.internal.pageSize.width - margin * 2, 0);
-                    yPosition += kpiCanvas.height * ( (doc.internal.pageSize.width - margin * 2) / kpiCanvas.width ) + 10;
-                    
-                    const chartCards = Array.from(document.querySelectorAll('#charts-container .chart-card'));
-                    for (let i = 0; i < chartCards.length; i++) {
-                        const card = chartCards[i];
-                        const canvas = await html2canvas(card, { scale: 2, backgroundColor: null });
-                        const imgWidth = (doc.internal.pageSize.width / 2) - margin;
-                        const imgHeight = canvas.height * (imgWidth / canvas.width);
-
-                        if (yPosition + imgHeight > pageHeight - margin) {
-                            doc.addPage();
-                            addHeader(doc);
-                            yPosition = 35;
-                        }
-                        const xPosition = (i % 2 === 0) ? margin : (doc.internal.pageSize.width / 2) + 5;
-                        doc.addImage(canvas.toDataURL('image/png'), 'PNG', xPosition, yPosition, imgWidth, 0);
-
-                        if (i % 2 !== 0 || i === chartCards.length - 1) {
-                            yPosition += imgHeight + 10;
-                        }
+                    if (yPosition + imgHeight > pageHeight - margin && i % 2 === 0) {
+                        doc.addPage();
+                        addHeaderToPage(doc, title);
+                        yPosition = 35;
                     }
+                    doc.addImage(imgData, 'PNG', xPosition, yPosition, imgWidth, imgHeight);
+                    if (i % 2 !== 0 || i === chartCards.length - 1) yPosition += imgHeight + 10;
+                }
 
-                    if (state.activeSheet !== 'summary' && state.currentViewData.length > 0) {
-                        if (yPosition > pageHeight - 40) {
-                             doc.addPage();
-                             addHeader(doc);
-                             yPosition = 35;
-                        }
-                        const tableHead = [['Actividad', 'Fecha', 'Municipio', 'Total', 'URL Evidencia']];
-                        const tableBody = state.currentViewData.map(row => [ row['NOMBRE DE LA ACTIVIDAD'], row['FECHA'], row['MUNICIPIO'], row['TOTAL ATENCION'], row['LINK DE EVIDENCIA'] ]);
-                        
+                // Agregado: Lógica para añadir la tabla de datos al PDF
+                if (state.activeSheet !== 'summary') {
+                    const selections = getSelections();
+                    const sourceData = state.data[state.activeSheet] || [];
+                    const tableData = sourceData.filter(row => {
+                        if (selections.startDate && row['FECHA'] < selections.startDate) return false;
+                        if (selections.endDate && row['FECHA'] > selections.endDate) return false;
+                        for (const col in selections.categorical) { if (!selections.categorical[col].includes(row[col])) return false; }
+                        if (selections.population.length > 0 && !selections.population.some(popFilter => row[popFilter] > 0)) return false;
+                        return true;
+                    });
+                    
+                    if (tableData.length > 0) {
+                        const tableHeaders = [['Actividad', 'Fecha', 'Municipio', 'Total', 'URL']];
+                        const tableBody = tableData.map(row => [
+                            row['NOMBRE DE LA ACTIVIDAD'] || '',
+                            row['FECHA'] || '',
+                            row['MUNICIPIO'] || '',
+                            row['TOTAL ATENCION'] || 0,
+                            row['LINK DE EVIDENCIA'] || ''
+                        ]);
+
                         doc.autoTable({
-                            head: tableHead,
+                            head: tableHeaders,
                             body: tableBody,
-                            startY: yPosition,
+                            startY: yPosition > pageHeight - 60 ? (doc.addPage(), 35) : yPosition,
                             theme: 'grid',
-                            headStyles: { fillColor: '#212529' },
-                            didDrawPage: (data) => addHeader(doc)
+                            headStyles: { fillColor: [13, 110, 253] },
+                            styles: { fontSize: 8, cellPadding: 2 },
+                            columnStyles: { 4: { cellWidth: 35, styles: { overflow: 'linebreak' } } }
                         });
                     }
-                    
-                    const pageCount = doc.internal.getNumberOfPages();
-                    for(let i = 1; i <= pageCount; i++) {
-                        doc.setPage(i);
-                        doc.setFontSize(8).setTextColor('#888888');
-                        const dateText = `Generado el: ${new Date().toLocaleString('es-CO')}`;
-                        doc.text(dateText, margin, pageHeight - 10);
-                        doc.text(`Página ${i} de ${pageCount}`, doc.internal.pageSize.width - 35, pageHeight - 10);
-                    }
-
-                    doc.save(filename);
-                } catch(err) {
-                    console.error("Error al generar el PDF:", err);
-                    alert("Ocurrió un error al generar el PDF. Revise la consola para más detalles.");
-                } finally {
-                    toggleLoader(false);
                 }
+
+                const pageCount = doc.internal.getNumberOfPages();
+                for(let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    addFooterToPage(doc, i, pageCount);
+                }
+
+                doc.save(filename);
+                toggleLoader(false);
             };
 
             // Event Listeners
