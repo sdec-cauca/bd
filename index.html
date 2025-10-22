@@ -68,10 +68,10 @@
         .dropdown-item-text:hover { background-color: rgba(0,0,0,0.1); }
         [data-bs-theme="dark"] .dropdown-item-text:hover { background-color: rgba(255,255,255,0.1); }
         .table { --bs-table-bg: transparent; }
+        /* Mejora para renderizado de celdas en tabla */
+        .table td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; vertical-align: middle; }
         .chart-container { position: relative; flex-grow: 1; min-height: 200px; }
         .table-container { flex-shrink: 0; }
-        /* Ajuste para badges de fechas múltiples en la tabla */
-        .date-badge { font-size: 0.85em; margin-right: 4px; margin-bottom: 2px; display: inline-block; }
     </style>
 </head>
 <body>
@@ -138,43 +138,26 @@
                 loader.style.display = show ? 'flex' : 'none';
             };
 
-            // --- NUEVA FUNCIÓN DE NORMALIZACIÓN DE FECHAS ---
-            const normalizarFechas = (valorCelda) => {
-                if (!valorCelda) return [];
-                // Caso 1: Fecha numérica de Excel
-                if (typeof valorCelda === 'number' && valorCelda > 1000) {
-                    try { return [new Date(Date.UTC(1900, 0, valorCelda - 1)).toISOString().split('T')[0]]; } catch (e) { return []; }
+            // --- NUEVA FUNCIÓN DE NORMALIZACIÓN DE FECHAS ROBUSTA ---
+            const normalizeDate = (val) => {
+                if (!val) return "";
+                // 1. Fecha serial de Excel (números grandes)
+                if (typeof val === 'number' && val > 2000) { 
+                    // Se usa UTC para evitar desfases por zona horaria local
+                    const date = new Date(Date.UTC(1900, 0, val - 1));
+                    if (!isNaN(date)) return date.toISOString().split('T')[0];
                 }
-                // Caso 2: String con posibles múltiples fechas
-                if (typeof valorCelda === 'string') {
-                    // Separar por comas, saltos de línea, guiones (cuidado con AAAA-MM-DD), ' y ', '&'
-                    // Usamos una expresión regular que busca separadores comunes pero trata de no romper fechas ISO
-                    const partes = valorCelda.split(/,\s*|\s+y\s+|\s*&\s*|\n|\r/i);
-                    const fechasDetectadas = [];
-                    partes.forEach(p => {
-                        let limpia = p.trim();
-                        if (limpia.length >= 8) { // Mínimo para ser una fecha razonable
-                            // Intento 1: Parseo estándar de JS
-                            let d = new Date(limpia);
-                            if (!isNaN(d.getTime())) {
-                                fechasDetectadas.push(d.toISOString().split('T')[0]);
-                            } else {
-                                // Intento 2: Formato latino DD/MM/AAAA si falla el estándar
-                                const matchLatino = limpia.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-                                if (matchLatino) {
-                                    try {
-                                        // new Date(AAAA, Mes-1, Día)
-                                        let dLat = new Date(parseInt(matchLatino[3]), parseInt(matchLatino[2]) - 1, parseInt(matchLatino[1]));
-                                        if (!isNaN(dLat.getTime())) fechasDetectadas.push(dLat.toISOString().split('T')[0]);
-                                    } catch(e) {}
-                                }
-                            }
-                        }
-                    });
-                    // Devolver fechas únicas ordenadas
-                    return [...new Set(fechasDetectadas)].sort();
+                // 2. Procesamiento de cadenas (busca la PRIMERA fecha válida)
+                if (typeof val === 'string') {
+                    // Buscar formato ISO YYYY-MM-DD
+                    let isoMatch = val.match(/\b(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})\b/);
+                    if (isoMatch) return `${isoMatch[1]}-${isoMatch[2].padStart(2,'0')}-${isoMatch[3].padStart(2,'0')}`;
+                    // Buscar formato latino DD/MM/YYYY
+                    let dmyMatch = val.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/);
+                    if (dmyMatch) return `${dmyMatch[3]}-${dmyMatch[2].padStart(2,'0')}-${dmyMatch[1].padStart(2,'0')}`;
                 }
-                return [];
+                // 3. Si no es fecha reconocible, devolver original (evita perder info, aunque puede no filtrar bien)
+                return val;
             };
 
             const processExcelData = (arrayBuffer) => {
@@ -193,21 +176,10 @@
                         const obj = {};
                         expectedHeaders.forEach((header, i) => {
                             let value = row[i];
-                            
-                            if (header === 'FECHA') {
-                                // Usamos el nuevo normalizador
-                                const fechasNormalizadas = normalizarFechas(value);
-                                // Guardamos TODAS las fechas detectadas en un campo especial para filtros/gráficas
-                                obj['__FECHAS_NORMALIZADAS'] = fechasNormalizadas;
-                                // Para compatibilidad visual simple, guardamos la primera fecha como 'FECHA' principal,
-                                // o un string vacío si no se detectó ninguna.
-                                obj['FECHA'] = fechasNormalizadas.length > 0 ? fechasNormalizadas[0] : null;
-                            } else if (numericHeaders.includes(header)) {
-                                value = parseInt(value, 10) || 0;
-                                obj[header] = value;
-                            } else {
-                                obj[header] = (value || "").toString().trim();
-                            }
+                            if (numericHeaders.includes(header)) value = parseInt(value, 10) || 0;
+                            // USO DE LA NUEVA FUNCIÓN DE NORMALIZACIÓN
+                            if (header === 'FECHA') value = normalizeDate(value);
+                            obj[header] = value;
                         });
                         return obj;
                     }).filter(row => row['COMPONENTE'] || row['NOMBRE DEL PROYECTO']);
@@ -226,7 +198,7 @@
                     processExcelData(await response.arrayBuffer());
                 } catch (error) {
                     console.error("Error al obtener datos:", error);
-                    dashboardContent.innerHTML = `<div class="alert alert-danger glass-card"><b>Error:</b> No se pudieron obtener los datos. Verifica la conexión o la URL.</div>`;
+                    dashboardContent.innerHTML = `<div class="alert alert-danger glass-card"><b>Error:</b> No se pudieron obtener los datos.</div>`;
                 } finally {
                     toggleLoader(false);
                 }
@@ -261,8 +233,8 @@
 
                 const detailTableHtml = state.activeSheet !== 'summary' ? `
                     <div class="card glass-card mt-4">
-                        <div class="card-header bg-transparent fw-bold"><i class="bi bi-table me-2"></i>Detalle de Actividades</div>
-                        <div class="card-body"><div class="table-responsive"><table id="data-table" class="table table-hover w-100 display nowrap"></table></div></div>
+                        <div class="card-header bg-transparent fw-bold"><i class="bi bi-table me-2"></i>Datos Completos</div>
+                        <div class="card-body"><div class="table-responsive"><table id="data-table" class="table table-hover w-100"></table></div></div>
                     </div>` : '';
 
                 dashboardContent.innerHTML = `
@@ -286,7 +258,7 @@
                         <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Edad</div><div class="card-body d-flex flex-column" style="height: 400px;"><div class="chart-container"><canvas id="chart-age"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-age"></tbody></table></div></div></div></div>
                         <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Grupo Poblacional</div><div class="card-body d-flex flex-column" style="height: 400px;"><div class="chart-container"><canvas id="chart-population"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-population"></tbody></table></div></div></div></div>
                         <div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Grupo Étnico</div><div class="card-body d-flex flex-column" style="height: 400px;"><div class="chart-container"><canvas id="chart-ethnic"></canvas></div><div class="table-container table-responsive"><table class="table table-sm mt-3"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody id="table-ethnic"></tbody></table></div></div></div></div>
-                        ${state.activeSheet !== 'summary' ? `<div class="col-lg-12"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Línea de Tiempo de Actividades</div><div class="card-body" style="height: 400px;"><div class="chart-container"><canvas id="chart-timeline"></canvas></div></div></div></div>` : ''}
+                        ${state.activeSheet !== 'summary' ? `<div class="col-lg-6"><div class="card glass-card h-100 chart-card"><div class="card-header bg-transparent fw-bold">Línea de Tiempo</div><div class="card-body" style="height: 400px;"><div class="chart-container"><canvas id="chart-timeline"></canvas></div></div></div></div>` : ''}
                     </div>
                     ${detailTableHtml}`;
                 
@@ -314,18 +286,9 @@
                     return;
                 }
                 const selections = getSelections();
-                
                 const filteredData = sourceData.filter(row => {
-                    // Filtro de Fecha MEJORADO para usar el array de todas las fechas posibles
-                    if (selections.startDate) {
-                        // Si ninguna de las fechas de la actividad es mayor o igual a la fecha de inicio, excluye la fila
-                        if (!row['__FECHAS_NORMALIZADAS'] || !row['__FECHAS_NORMALIZADAS'].some(d => d >= selections.startDate)) return false;
-                    }
-                    if (selections.endDate) {
-                         // Si ninguna de las fechas de la actividad es menor o igual a la fecha fin, excluye la fila
-                        if (!row['__FECHAS_NORMALIZADAS'] || !row['__FECHAS_NORMALIZADAS'].some(d => d <= selections.endDate)) return false;
-                    }
-
+                    if (selections.startDate && row['FECHA'] < selections.startDate) return false;
+                    if (selections.endDate && row['FECHA'] > selections.endDate) return false;
                     for (const col in selections.categorical) { if (!selections.categorical[col].includes(row[col])) return false; }
                     if (selections.population.length > 0 && !selections.population.some(popFilter => row[popFilter] > 0)) return false;
                     return true;
@@ -412,15 +375,7 @@
                 state.charts.ethnic = new Chart(document.getElementById('chart-ethnic'), { type: 'doughnut', data: { labels: Object.keys(ethnicGroups), datasets: [{ data: Object.values(ethnicGroups), backgroundColor: ['#6f42c1', '#dc3545', '#ffc107', '#20c997'] }] }, options: chartOptions });
                 
                 if (state.activeSheet !== 'summary') {
-                    // Lógica MEJORADA para la línea de tiempo: usa TODAS las fechas detectadas
-                    const timelineData = {};
-                    data.forEach(r => {
-                        if (r['__FECHAS_NORMALIZADAS'] && r['__FECHAS_NORMALIZADAS'].length > 0) {
-                            r['__FECHAS_NORMALIZADAS'].forEach(f => {
-                                timelineData[f] = (timelineData[f] || 0) + 1;
-                            });
-                        }
-                    });
+                    const timelineData = data.reduce((acc, r) => { if(r['FECHA']) acc[r['FECHA']] = (acc[r['FECHA']] || 0) + 1; return acc; }, {});
                     const sortedDates = Object.keys(timelineData).sort();
                     state.charts.timeline = new Chart(document.getElementById('chart-timeline'), { type: 'line', data: { labels: sortedDates, datasets: [{ label: 'Actividades por Fecha', data: sortedDates.map(d => timelineData[d]), borderColor: '#0dcaf0', tension: 0.2, fill: true, backgroundColor: 'rgba(13, 202, 240, 0.1)' }] }, options: lineChartOptions });
                 }
@@ -452,32 +407,12 @@
                     title: header, 
                     data: header, 
                     defaultContent: "", 
-                    render: (d, type, row) => {
-                        if (header === 'LINK DE EVIDENCIA' && typeof d === 'string' && d.startsWith('http')) {
-                            return `<a href="${d}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary"><i class="bi bi-link-45deg"></i> Ver</a>`;
-                        }
-                        // Renderizado especial para FECHA para mostrar todas las detectadas
-                        if (header === 'FECHA' && row['__FECHAS_NORMALIZADAS'] && row['__FECHAS_NORMALIZADAS'].length > 0) {
-                             if (type === 'display') {
-                                 return row['__FECHAS_NORMALIZADAS'].map(f => `<span class="badge bg-secondary date-badge">${f}</span>`).join(' ');
-                             }
-                             return row['__FECHAS_NORMALIZADAS'].join(', ');
-                        }
-                        return d;
-                    }
+                    render: (d) => (header === 'LINK DE EVIDENCIA' && typeof d === 'string' && d.startsWith('http')) 
+                        ? `<a href="${d}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">Ver <i class="bi bi-box-arrow-up-right"></i></a>` 
+                        : d 
                 }));
-                // Ajustes para "Renderizar filas": scrollX para muchas columnas, y autoWidth falso para mejor control
-                state.dataTable = new DataTable('#data-table', { 
-                    data, 
-                    columns, 
-                    responsive: false, // Desactivado responsive simple para permitir scroll horizontal si hay muchas columnas
-                    scrollX: true,     // Habilita scroll horizontal
-                    autoWidth: false,
-                    language: { url: '//cdn.datatables.net/plug-ins/2.0.8/i18n/es-ES.json' }, 
-                    pageLength: 10, 
-                    lengthMenu: [10, 25, 50, 100],
-                    destroy: true 
-                });
+                // Se añade 'scrollX' para mejor manejo de tablas anchas en móviles
+                state.dataTable = new DataTable('#data-table', { data, columns, scrollX: true, autoWidth: false, language: { url: '//cdn.datatables.net/plug-ins/2.0.8/i18n/es-ES.json' }, pageLength: 10, lengthMenu: [10, 25, 50], destroy: true });
             };
             
             const handleThemeSwitch = () => {
@@ -492,65 +427,60 @@
                 if (selections.startDate) filterTexts.push(`Desde: ${selections.startDate}`);
                 if (selections.endDate) filterTexts.push(`Hasta: ${selections.endDate}`);
                 for (const key in selections.categorical) { filterTexts.push(`${key}: ${selections.categorical[key].join(', ')}`); }
-                if (selections.population.length > 0) { filterTexts.push(`Población: ${selections.population.join(', ')}`); }
+                if (selections.population.length > 0) { filterTexts.push(`Demografía: ${selections.population.join(', ')}`); }
                 return filterTexts.length > 0 ? filterTexts.join(' | ') : "Ninguno";
             };
 
             const addHeaderToPage = (doc, title) => {
                 doc.setFillColor('#0d6efd'); doc.rect(0, 0, doc.internal.pageSize.width, 25, 'F');
-                doc.setFontSize(20).setFont(undefined, 'bold').setTextColor('#FFFFFF'); doc.text('Informe de Analítica', 15, 15);
+                doc.setFontSize(20).setFont(undefined, 'bold').setTextColor('#FFFFFF'); doc.text('Informe Analítico', 15, 15);
                 doc.setFontSize(12).setFont(undefined, 'normal'); doc.text(`Vista: ${title}`, 15, 21);
             };
 
             const addFooterToPage = (doc, pageNum, totalPages) => {
                 doc.setFontSize(8).setTextColor('#888888');
-                doc.text(`Generado el: ${new Date().toLocaleString('es-CO')}`, 15, doc.internal.pageSize.height - 10);
-                doc.text(`Página ${pageNum} of ${totalPages}`, doc.internal.pageSize.width - 35, doc.internal.pageSize.height - 10);
+                doc.text(`Generado: ${new Date().toLocaleString('es-CO')}`, 15, doc.internal.pageSize.height - 10);
+                doc.text(`Pág ${pageNum}/${totalPages}`, doc.internal.pageSize.width - 25, doc.internal.pageSize.height - 10);
             };
 
             const generatePDF = async () => {
                 toggleLoader(true, 'Generando PDF...');
                 const { jsPDF } = window.jspdf; const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
                 const title = state.activeSheet === 'summary' ? 'Resumen General' : `Componente: ${state.activeSheet}`;
-                let yPos = 35; const margin = 15; const pageHeight = doc.internal.pageSize.height;
+                let y = 35; const margin = 15; const pageH = doc.internal.pageSize.height;
 
                 addHeaderToPage(doc, title);
-                doc.setFontSize(10).setTextColor(0);
-                const filterText = doc.splitTextToSize(`Filtros: ${getAppliedFiltersText()}`, doc.internal.pageSize.width - (margin * 2));
-                doc.text(filterText, margin, yPos); yPos += (filterText.length * 5) + 5;
+                doc.setFontSize(10).setTextColor(0).text('Filtros: ' + getAppliedFiltersText(), margin, y, { maxWidth: doc.internal.pageSize.width - margin * 2 });
+                y += 15;
 
-                const kpiCanvas = await html2canvas(document.getElementById('kpi-cards-container'), { scale: 1.5, backgroundColor: null });
-                const kpiImgProps = doc.getImageProperties(kpiCanvas.toDataURL('image/png'));
-                const kpiHeight = (kpiImgProps.height * (doc.internal.pageSize.width - margin * 2)) / kpiImgProps.width;
-                doc.addImage(kpiImgProps.data, 'PNG', margin, yPos, doc.internal.pageSize.width - margin * 2, kpiHeight);
-                yPos += kpiHeight + 10;
+                const kpiCanvas = await html2canvas(document.getElementById('kpi-cards-container'), { scale: 2, backgroundColor: null });
+                const kpiImg = kpiCanvas.toDataURL('image/png');
+                const kpiH = (kpiCanvas.height * (doc.internal.pageSize.width - margin * 2)) / kpiCanvas.width;
+                doc.addImage(kpiImg, 'PNG', margin, y, doc.internal.pageSize.width - margin * 2, kpiH);
+                y += kpiH + 10;
 
                 const charts = document.querySelectorAll('#charts-container .chart-card');
                 for (let i = 0; i < charts.length; i++) {
-                    if (yPos > pageHeight - 80) { doc.addPage(); addHeaderToPage(doc, title); yPos = 35; }
-                    const canvas = await html2canvas(charts[i], { scale: 1.5, backgroundColor: null });
-                    const imgProps = doc.getImageProperties(canvas.toDataURL('image/png'));
-                    const width = (i === charts.length - 1 && state.activeSheet !== 'summary') ? (doc.internal.pageSize.width - margin * 2) : (doc.internal.pageSize.width / 2) - margin - 5;
-                    const height = (imgProps.height * width) / imgProps.width;
-                    const xPos = (i % 2 === 0 || width > 100) ? margin : (doc.internal.pageSize.width / 2) + 5;
-                    doc.addImage(imgProps.data, 'PNG', xPos, yPos, width, height);
-                    if (i % 2 !== 0 || width > 100) yPos += height + 10;
+                    if (y > pageH - 80) { doc.addPage(); addHeaderToPage(doc, title); y = 35; }
+                    const canvas = await html2canvas(charts[i], { scale: 1.5, backgroundColor: '#ffffff' });
+                    const imgH = (canvas.height * ((doc.internal.pageSize.width / 2) - margin - 5)) / canvas.width;
+                    doc.addImage(canvas.toDataURL('image/jpeg', 0.8), 'JPEG', (i % 2 === 0 ? margin : doc.internal.pageSize.width / 2 + 5), y, (doc.internal.pageSize.width / 2) - margin - 5, imgH);
+                    if (i % 2 !== 0) y += imgH + 10;
                 }
-
+                
                 if (state.activeSheet !== 'summary') {
-                    doc.addPage(); addHeaderToPage(doc, title); yPos = 35;
-                    doc.setFontSize(14).setTextColor(0).text('Detalle de Datos', margin, yPos); yPos += 10;
-                    const tableData = state.dataTable.rows({ search: 'applied' }).data().toArray();
+                    doc.addPage(); addHeaderToPage(doc, title); y = 35;
                     doc.autoTable({
-                        head: [['Actividad', 'Fechas', 'Municipio', 'Total']],
-                        body: tableData.map(row => [row['NOMBRE DE LA ACTIVIDAD'], (row['__FECHAS_NORMALIZADAS'] || []).join(', '), row['MUNICIPIO'], row['TOTAL ATENCION']]),
-                        startY: yPos, theme: 'grid', styles: { fontSize: 7 }, headStyles: { fillColor: [13, 110, 253] }
+                        head: [['Actividad', 'Fecha', 'Municipio', 'Total', 'Evidencia']],
+                        body: state.data[state.activeSheet].map(r => [r['NOMBRE DE LA ACTIVIDAD'], r['FECHA'], r['MUNICIPIO'], r['TOTAL ATENCION'], r['LINK DE EVIDENCIA']]),
+                        startY: y, styles: { fontSize: 7 }, headStyles: { fillColor: [13, 110, 253] }, columnStyles: { 4: { cellWidth: 25, overflow: 'linebreak' } }
                     });
                 }
 
-                const pageCount = doc.internal.getNumberOfPages();
-                for(let i = 1; i <= pageCount; i++) { doc.setPage(i); addFooterToPage(doc, i, pageCount); }
-                doc.save(`Informe_${new Date().toISOString().split('T')[0]}.pdf`); toggleLoader(false);
+                const pages = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pages; i++) { doc.setPage(i); addFooterToPage(doc, i, pages); }
+                doc.save(`Informe_${new Date().toISOString().split('T')[0]}.pdf`);
+                toggleLoader(false);
             };
 
             updateDataBtn.addEventListener('click', fetchData);
