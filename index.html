@@ -68,7 +68,6 @@
         .dropdown-item-text:hover { background-color: rgba(0,0,0,0.1); }
         [data-bs-theme="dark"] .dropdown-item-text:hover { background-color: rgba(255,255,255,0.1); }
         .table { --bs-table-bg: transparent; }
-        /* Mejora para renderizado de celdas en tabla */
         .table td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; vertical-align: middle; }
         .chart-container { position: relative; flex-grow: 1; min-height: 200px; }
         .table-container { flex-shrink: 0; }
@@ -121,6 +120,19 @@
             const expectedHeaders = [ 'COMPONENTE', 'NOMBRE DEL PROYECTO', 'NOMBRE DE LA ACTIVIDAD', 'FECHA', 'MUNICIPIO', 'VEREDA', 'HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO', 'TOTAL ATENCION', 'LINK DE EVIDENCIA' ];
             const numericHeaders = [ 'HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'TOTAL ATENCION', 'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO' ];
 
+            // --- NUEVO: DICCIONARIO DE NORMALIZACIÓN DE MUNICIPIOS DEL CAUCA ---
+            const municipalityMap = {
+                'almaguer': 'Almaguer', 'argelia': 'Argelia', 'balboa': 'Balboa', 'bolivar': 'Bolívar', 'buenos aires': 'Buenos Aires',
+                'cajibio': 'Cajibío', 'caldono': 'Caldono', 'caloto': 'Caloto', 'corinto': 'Corinto', 'el tambo': 'El Tambo',
+                'florencia': 'Florencia', 'guachene': 'Guachené', 'guapi': 'Guapí', 'inza': 'Inzá', 'jambalo': 'Jambaló',
+                'la sierra': 'La Sierra', 'la vega': 'La Vega', 'lopez de micay': 'López de Micay', 'mercaderes': 'Mercaderes',
+                'miranda': 'Miranda', 'morales': 'Morales', 'padilla': 'Padilla', 'paez': 'Páez', 'patia': 'Patía',
+                'piamonte': 'Piamonte', 'piendamo': 'Piendamó', 'popayan': 'Popayán', 'puerto tejada': 'Puerto Tejada',
+                'purace': 'Puracé', 'rosas': 'Rosas', 'san sebastian': 'San Sebastián', 'santander de quilichao': 'Santander de Quilichao',
+                'santa rosa': 'Santa Rosa', 'silvia': 'Silvia', 'sotara': 'Sotará', 'suarez': 'Suárez', 'sucre': 'Sucre',
+                'timbio': 'Timbío', 'timbiqui': 'Timbiquí', 'toribio': 'Toribío', 'totoro': 'Totoró', 'villa rica': 'Villa Rica'
+            };
+
             const state = { activeSheet: 'summary', allData: [], dataSheetNames: [], data: {}, charts: {}, dataTable: null };
             const loader = document.getElementById('loader');
             const sheetTabsContainer = document.getElementById('sheet-tabs');
@@ -138,26 +150,28 @@
                 loader.style.display = show ? 'flex' : 'none';
             };
 
-            // --- NUEVA FUNCIÓN DE NORMALIZACIÓN DE FECHAS ROBUSTA ---
             const normalizeDate = (val) => {
                 if (!val) return "";
-                // 1. Fecha serial de Excel (números grandes)
                 if (typeof val === 'number' && val > 2000) { 
-                    // Se usa UTC para evitar desfases por zona horaria local
                     const date = new Date(Date.UTC(1900, 0, val - 1));
                     if (!isNaN(date)) return date.toISOString().split('T')[0];
                 }
-                // 2. Procesamiento de cadenas (busca la PRIMERA fecha válida)
                 if (typeof val === 'string') {
-                    // Buscar formato ISO YYYY-MM-DD
                     let isoMatch = val.match(/\b(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})\b/);
                     if (isoMatch) return `${isoMatch[1]}-${isoMatch[2].padStart(2,'0')}-${isoMatch[3].padStart(2,'0')}`;
-                    // Buscar formato latino DD/MM/YYYY
                     let dmyMatch = val.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/);
                     if (dmyMatch) return `${dmyMatch[3]}-${dmyMatch[2].padStart(2,'0')}-${dmyMatch[1].padStart(2,'0')}`;
                 }
-                // 3. Si no es fecha reconocible, devolver original (evita perder info, aunque puede no filtrar bien)
                 return val;
+            };
+
+            // --- NUEVA FUNCIÓN: NORMALIZACIÓN DE MUNICIPIOS ---
+            const normalizeMunicipality = (rawName) => {
+                if (typeof rawName !== 'string' || !rawName) return "";
+                // Clave de búsqueda: minúsculas y sin tildes
+                const searchKey = rawName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                // Devuelve el nombre oficial del mapa, o el original si no se encuentra
+                return municipalityMap[searchKey] || rawName;
             };
 
             const processExcelData = (arrayBuffer) => {
@@ -177,8 +191,9 @@
                         expectedHeaders.forEach((header, i) => {
                             let value = row[i];
                             if (numericHeaders.includes(header)) value = parseInt(value, 10) || 0;
-                            // USO DE LA NUEVA FUNCIÓN DE NORMALIZACIÓN
                             if (header === 'FECHA') value = normalizeDate(value);
+                            // --- APLICACIÓN DE LA NORMALIZACIÓN DE MUNICIPIO ---
+                            if (header === 'MUNICIPIO') value = normalizeMunicipality(value);
                             obj[header] = value;
                         });
                         return obj;
@@ -411,7 +426,6 @@
                         ? `<a href="${d}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">Ver <i class="bi bi-box-arrow-up-right"></i></a>` 
                         : d 
                 }));
-                // Se añade 'scrollX' para mejor manejo de tablas anchas en móviles
                 state.dataTable = new DataTable('#data-table', { data, columns, scrollX: true, autoWidth: false, language: { url: '//cdn.datatables.net/plug-ins/2.0.8/i18n/es-ES.json' }, pageLength: 10, lengthMenu: [10, 25, 50], destroy: true });
             };
             
@@ -450,8 +464,10 @@
                 let y = 35; const margin = 15; const pageH = doc.internal.pageSize.height;
 
                 addHeaderToPage(doc, title);
-                doc.setFontSize(10).setTextColor(0).text('Filtros: ' + getAppliedFiltersText(), margin, y, { maxWidth: doc.internal.pageSize.width - margin * 2 });
-                y += 15;
+                doc.setFontSize(9).setFont(undefined, 'normal').setTextColor(0);
+                const filterLines = doc.splitTextToSize(`Filtros Aplicados: ${getAppliedFiltersText()}`, doc.internal.pageSize.width - margin * 2);
+                doc.text(filterLines, margin, y);
+                y += filterLines.length * 5 + 5;
 
                 const kpiCanvas = await html2canvas(document.getElementById('kpi-cards-container'), { scale: 2, backgroundColor: null });
                 const kpiImg = kpiCanvas.toDataURL('image/png');
@@ -459,27 +475,33 @@
                 doc.addImage(kpiImg, 'PNG', margin, y, doc.internal.pageSize.width - margin * 2, kpiH);
                 y += kpiH + 10;
 
-                const charts = document.querySelectorAll('#charts-container .chart-card');
+                const charts = Array.from(document.querySelectorAll('#charts-container .chart-card'));
                 for (let i = 0; i < charts.length; i++) {
-                    if (y > pageH - 80) { doc.addPage(); addHeaderToPage(doc, title); y = 35; }
-                    const canvas = await html2canvas(charts[i], { scale: 1.5, backgroundColor: '#ffffff' });
-                    const imgH = (canvas.height * ((doc.internal.pageSize.width / 2) - margin - 5)) / canvas.width;
-                    doc.addImage(canvas.toDataURL('image/jpeg', 0.8), 'JPEG', (i % 2 === 0 ? margin : doc.internal.pageSize.width / 2 + 5), y, (doc.internal.pageSize.width / 2) - margin - 5, imgH);
-                    if (i % 2 !== 0) y += imgH + 10;
+                    const card = charts[i];
+                    if (y + 80 > pageH) { doc.addPage(); addHeaderToPage(doc, title); y = 35; }
+                    const canvas = await html2canvas(card, { scale: 2, backgroundColor: null });
+                    const imgData = canvas.toDataURL('image/png');
+                    const imgWidth = (doc.internal.pageSize.width / 2) - margin - 2.5;
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    const x = (i % 2 === 0) ? margin : doc.internal.pageSize.width / 2 + 2.5;
+                    doc.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+                    if (i % 2 !== 0 || i === charts.length - 1) y += imgHeight + 10;
                 }
                 
-                if (state.activeSheet !== 'summary') {
-                    doc.addPage(); addHeaderToPage(doc, title); y = 35;
+                if (state.activeSheet !== 'summary' && state.dataTable) {
+                    if (y > pageH - 40) { doc.addPage(); addHeaderToPage(doc, title); y = 35; }
+                    const filteredData = state.dataTable.rows({ search: 'applied' }).data().toArray();
                     doc.autoTable({
                         head: [['Actividad', 'Fecha', 'Municipio', 'Total', 'Evidencia']],
-                        body: state.data[state.activeSheet].map(r => [r['NOMBRE DE LA ACTIVIDAD'], r['FECHA'], r['MUNICIPIO'], r['TOTAL ATENCION'], r['LINK DE EVIDENCIA']]),
-                        startY: y, styles: { fontSize: 7 }, headStyles: { fillColor: [13, 110, 253] }, columnStyles: { 4: { cellWidth: 25, overflow: 'linebreak' } }
+                        body: filteredData.map(r => [r['NOMBRE DE LA ACTIVIDAD'], r['FECHA'], r['MUNICIPIO'], r['TOTAL ATENCION'], r['LINK DE EVIDENCIA']]),
+                        startY: y, theme: 'grid', styles: { fontSize: 7, cellPadding: 1.5 }, headStyles: { fillColor: [13, 110, 253] },
+                        columnStyles: { 0: { cellWidth: 50 }, 4: { cellWidth: 25 } }
                     });
                 }
 
                 const pages = doc.internal.getNumberOfPages();
                 for (let i = 1; i <= pages; i++) { doc.setPage(i); addFooterToPage(doc, i, pages); }
-                doc.save(`Informe_${new Date().toISOString().split('T')[0]}.pdf`);
+                doc.save(`Informe_Analitico_${title.replace(/ /g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
                 toggleLoader(false);
             };
 
