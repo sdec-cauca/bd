@@ -120,7 +120,8 @@
             const expectedHeaders = [ 'COMPONENTE', 'NOMBRE DEL PROYECTO', 'NOMBRE DE LA ACTIVIDAD', 'FECHA', 'MUNICIPIO', 'VEREDA', 'HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO', 'TOTAL ATENCION', 'LINK DE EVIDENCIA' ];
             const numericHeaders = [ 'HOMBRE', 'MUJER', '14 – 28 AÑOS', '29 – 59 AÑOS', 'MÁYOR A 60 AÑOS', 'TOTAL ATENCION', 'VICTIMAS', 'DISCAPACIDAD', 'CAMPESINO', 'LGBTI-OSIGD', 'AFROCOLOMBIANO', 'INDIGENA', 'ROOM', 'MESTIZO' ];
 
-            // --- NUEVO: DICCIONARIO DE NORMALIZACIÓN DE MUNICIPIOS DEL CAUCA ---
+            // --- SECCIÓN NUEVA: NORMALIZACIÓN DE MUNICIPIOS DEL CAUCA ---
+            // Diccionario: Clave (minúscula sin tilde) -> Valor (Nombre Oficial Estandarizado)
             const municipalityMap = {
                 'almaguer': 'Almaguer', 'argelia': 'Argelia', 'balboa': 'Balboa', 'bolivar': 'Bolívar', 'buenos aires': 'Buenos Aires',
                 'cajibio': 'Cajibío', 'caldono': 'Caldono', 'caloto': 'Caloto', 'corinto': 'Corinto', 'el tambo': 'El Tambo',
@@ -132,6 +133,18 @@
                 'santa rosa': 'Santa Rosa', 'silvia': 'Silvia', 'sotara': 'Sotará', 'suarez': 'Suárez', 'sucre': 'Sucre',
                 'timbio': 'Timbío', 'timbiqui': 'Timbiquí', 'toribio': 'Toribío', 'totoro': 'Totoró', 'villa rica': 'Villa Rica'
             };
+
+            const normalizeMunicipality = (rawName) => {
+                if (typeof rawName !== 'string' || !rawName) return "";
+                // Paso 1: Convertir a minúsculas y quitar espacios extra
+                let searchKey = rawName.trim().toLowerCase();
+                // Paso 2: Quitar tildes para la búsqueda (NFD separa la letra de la tilde, replace la elimina)
+                searchKey = searchKey.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                
+                // Paso 3: Buscar en el diccionario oficial. Si existe, retorna el oficial, si no, deja el original.
+                return municipalityMap[searchKey] || rawName;
+            };
+            // -------------------------------------------------------------
 
             const state = { activeSheet: 'summary', allData: [], dataSheetNames: [], data: {}, charts: {}, dataTable: null };
             const loader = document.getElementById('loader');
@@ -165,15 +178,6 @@
                 return val;
             };
 
-            // --- NUEVA FUNCIÓN: NORMALIZACIÓN DE MUNICIPIOS ---
-            const normalizeMunicipality = (rawName) => {
-                if (typeof rawName !== 'string' || !rawName) return "";
-                // Clave de búsqueda: minúsculas y sin tildes
-                const searchKey = rawName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                // Devuelve el nombre oficial del mapa, o el original si no se encuentra
-                return municipalityMap[searchKey] || rawName;
-            };
-
             const processExcelData = (arrayBuffer) => {
                 const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
                 state.data = {}; state.allData = []; state.dataSheetNames = [];
@@ -192,8 +196,12 @@
                             let value = row[i];
                             if (numericHeaders.includes(header)) value = parseInt(value, 10) || 0;
                             if (header === 'FECHA') value = normalizeDate(value);
-                            // --- APLICACIÓN DE LA NORMALIZACIÓN DE MUNICIPIO ---
-                            if (header === 'MUNICIPIO') value = normalizeMunicipality(value);
+                            
+                            // APLICAR NORMALIZACIÓN DE MUNICIPIO AQUÍ
+                            if (header === 'MUNICIPIO') {
+                                value = normalizeMunicipality(value);
+                            }
+
                             obj[header] = value;
                         });
                         return obj;
